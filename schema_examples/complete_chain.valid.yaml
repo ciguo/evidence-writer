@@ -1,0 +1,269 @@
+research_package:
+  schema_version: research-package/0.1.2
+  topic: "合成示例：公共服务叫号界面的信息边界"
+  sources:
+    - id: S-01
+      title: "Synthetic service-design observation"
+      url: https://example.invalid/synthetic/source-01
+      published_at: "2026-09-01"
+      accessed_at: "2026-09-14"
+      rights_status: SYNTHETIC
+  claims:
+    - id: C-01
+      claim_type: FACT
+      text: "该合成材料中的叫号界面每次显示一个号码。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "仅限本合成示例"
+      as_of: "2026-09-01"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-02
+      claim_type: SIGNAL
+      text: "观察记录显示界面在切换时短暂显示新号码。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "仅限本合成示例"
+      as_of: "2026-09-01"
+      allowed_use: [state, qualify]
+      verification_status: VERIFIED
+    - id: C-03
+      claim_type: HYPOTHESIS
+      text: "信息呈现方式可能影响使用者的核对体验。"
+      source_ids: []
+      supporting_claim_ids: [C-01, C-02]
+      origin: DERIVED
+      evidence_level: CONTEXTUAL
+      scope: "待讨论假设，不可写成已证实因果"
+      as_of: "2026-09-14"
+      allowed_use: [qualify]
+      verification_status: PARTIAL
+    - id: C-04
+      claim_type: LIMIT
+      text: "材料没有记录具体使用者的心理、动作或满意度。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "全文"
+      as_of: "2026-09-01"
+      allowed_use: [limit]
+      verification_status: VERIFIED
+    - id: C-05
+      claim_type: FORBIDDEN
+      text: "不得虚构使用者、工作人员或其他群体的动作、感受、动机与行为。"
+      source_ids: []
+      supporting_claim_ids: [C-04]
+      origin: DERIVED
+      evidence_level: NONE
+      scope: "全文"
+      as_of: "2026-09-14"
+      allowed_use: [forbid]
+      verification_status: FORBIDDEN
+
+capability_registry_snapshot:
+  schema_version: capability-registry/0.1
+  registry_version: 0.1.0
+  capability_ids: [explanation-density-control]
+
+auditor_result:
+  stage: AUDITOR
+  stage_status: PASS
+  artifact_envelope:
+    artifact_type: WriterHandoff
+    artifact_schema_version: writer-handoff/0.1.2
+    canonical_json_sha256: "sha256:071cd8eb17c1ca74fb52da4ab3a6cd339779cfcd418881442c59b71fdcc0b09f"
+    artifact:
+      schema_version: writer-handoff/0.1.2
+      evidence_authority: WRITER_HANDOFF_ONLY
+      sources:
+        - id: S-01
+          title: "Synthetic service-design observation"
+          url: https://example.invalid/synthetic/source-01
+          published_at: "2026-09-01"
+          accessed_at: "2026-09-14"
+          rights_status: SYNTHETIC
+      authorized_claims:
+        - id: C-01
+          claim_type: FACT
+          text: "该合成材料中的叫号界面每次显示一个号码。"
+          source_ids: [S-01]
+          supporting_claim_ids: []
+          origin: SOURCE_BACKED
+          evidence_level: PRIMARY
+          scope: "仅限本合成示例"
+          as_of: "2026-09-01"
+          allowed_use: [state]
+          verification_status: VERIFIED
+        - id: C-02
+          claim_type: SIGNAL
+          text: "观察记录显示界面在切换时短暂显示新号码。"
+          source_ids: [S-01]
+          supporting_claim_ids: []
+          origin: SOURCE_BACKED
+          evidence_level: PRIMARY
+          scope: "仅限本合成示例"
+          as_of: "2026-09-01"
+          allowed_use: [state, qualify]
+          verification_status: VERIFIED
+        - id: C-03
+          claim_type: HYPOTHESIS
+          text: "信息呈现方式可能影响使用者的核对体验。"
+          source_ids: []
+          supporting_claim_ids: [C-01, C-02]
+          origin: DERIVED
+          evidence_level: CONTEXTUAL
+          scope: "待讨论假设，不可写成已证实因果"
+          as_of: "2026-09-14"
+          allowed_use: [qualify]
+          verification_status: PARTIAL
+      boundary_claims:
+        - id: C-04
+          claim_type: LIMIT
+          text: "材料没有记录具体使用者的心理、动作或满意度。"
+          source_ids: [S-01]
+          supporting_claim_ids: []
+          origin: SOURCE_BACKED
+          evidence_level: PRIMARY
+          scope: "全文"
+          as_of: "2026-09-01"
+          allowed_use: [limit]
+          verification_status: VERIFIED
+        - id: C-05
+          claim_type: FORBIDDEN
+          text: "不得虚构使用者、工作人员或其他群体的动作、感受、动机与行为。"
+          source_ids: []
+          supporting_claim_ids: [C-04]
+          origin: DERIVED
+          evidence_level: NONE
+          scope: "全文"
+          as_of: "2026-09-14"
+          allowed_use: [forbid]
+          verification_status: FORBIDDEN
+
+adapter_result:
+  stage: ADAPTER
+  stage_status: PASS
+  artifact_envelope:
+    artifact_type: WriterInput
+    artifact_schema_version: writer-input/0.1.2
+    canonical_json_sha256: "sha256:bb67e6e13f115c280ff062920ecbb34e5eb95f22b54c929739d5a5eb0785ec0d"
+    artifact:
+      schema_version: writer-input/0.1.2
+      evidence_handoff:
+        schema_version: writer-handoff/0.1.2
+        evidence_authority: WRITER_HANDOFF_ONLY
+        sources:
+          - id: S-01
+            title: "Synthetic service-design observation"
+            url: https://example.invalid/synthetic/source-01
+            published_at: "2026-09-01"
+            accessed_at: "2026-09-14"
+            rights_status: SYNTHETIC
+        authorized_claims:
+          - id: C-01
+            claim_type: FACT
+            text: "该合成材料中的叫号界面每次显示一个号码。"
+            source_ids: [S-01]
+            supporting_claim_ids: []
+            origin: SOURCE_BACKED
+            evidence_level: PRIMARY
+            scope: "仅限本合成示例"
+            as_of: "2026-09-01"
+            allowed_use: [state]
+            verification_status: VERIFIED
+          - id: C-02
+            claim_type: SIGNAL
+            text: "观察记录显示界面在切换时短暂显示新号码。"
+            source_ids: [S-01]
+            supporting_claim_ids: []
+            origin: SOURCE_BACKED
+            evidence_level: PRIMARY
+            scope: "仅限本合成示例"
+            as_of: "2026-09-01"
+            allowed_use: [state, qualify]
+            verification_status: VERIFIED
+          - id: C-03
+            claim_type: HYPOTHESIS
+            text: "信息呈现方式可能影响使用者的核对体验。"
+            source_ids: []
+            supporting_claim_ids: [C-01, C-02]
+            origin: DERIVED
+            evidence_level: CONTEXTUAL
+            scope: "待讨论假设，不可写成已证实因果"
+            as_of: "2026-09-14"
+            allowed_use: [qualify]
+            verification_status: PARTIAL
+        boundary_claims:
+          - id: C-04
+            claim_type: LIMIT
+            text: "材料没有记录具体使用者的心理、动作或满意度。"
+            source_ids: [S-01]
+            supporting_claim_ids: []
+            origin: SOURCE_BACKED
+            evidence_level: PRIMARY
+            scope: "全文"
+            as_of: "2026-09-01"
+            allowed_use: [limit]
+            verification_status: VERIFIED
+          - id: C-05
+            claim_type: FORBIDDEN
+            text: "不得虚构使用者、工作人员或其他群体的动作、感受、动机与行为。"
+            source_ids: []
+            supporting_claim_ids: [C-04]
+            origin: DERIVED
+            evidence_level: NONE
+            scope: "全文"
+            as_of: "2026-09-14"
+            allowed_use: [forbid]
+            verification_status: FORBIDDEN
+      author_intent:
+        schema_version: author-intent/0.1.2
+        fact_authority: NONE
+        why_now: "想讨论日常界面如何改变信息被理解的方式。"
+        central_tension: "效率设计与可核对性之间可能存在张力。"
+        core_position: "不把单一设计细节夸大成已证实的普遍问题。"
+        emotional_state: UNSET
+        distance_to_object: "观察者，不代言使用者。"
+        do_not_become: "不得写成技术万能论或群体心理故事。"
+        ending_destination: "停在一个开放问题，不升华。"
+      capability_plan:
+        schema_version: capability-plan/0.1.2
+        registry_version: 0.1.0
+        fact_authority: NONE
+        selected:
+          - capability_id: explanation-density-control
+            objective: "减少重复解释。"
+            execution_directive: "提出假设后保留限定，不扩展为机制链。"
+            skip_if: "证据不足以支撑核心段落时跳过。"
+            success_check: "没有新增事实、场景、心理或因果。"
+
+writer_result:
+  stage: WRITER
+  stage_status: PASS
+  artifact_envelope:
+    artifact_type: DraftArtifact
+    artifact_schema_version: draft-artifact/0.1.2
+    canonical_json_sha256: "sha256:7de931dce695f59db6b535e3713a434361ad377e96684150020110cb4b5ec45e"
+    artifact:
+      schema_version: draft-artifact/0.1.2
+      input_digest: "sha256:bb67e6e13f115c280ff062920ecbb34e5eb95f22b54c929739d5a5eb0785ec0d"
+      draft_markdown: "这个合成材料只记录了界面显示号码和短暂切换。它不足以证明设计必然带来什么后果。"
+      generation_metadata: {provider: example-provider, model: example-model}
+
+final_review_result:
+  stage: FINAL_REVIEW
+  stage_status: PASS
+  artifact_envelope:
+    artifact_type: ReviewResult
+    artifact_schema_version: review-result/0.1.2
+    canonical_json_sha256: "sha256:92fd9563b257ce12b6a81d3d058f96424f6770cc085dd52ad955c4eb114a2164"
+    artifact:
+      schema_version: review-result/0.1.2
+      review_verdict: PASS
+      findings: []
+      final_text: "这个合成材料只记录了界面显示号码和短暂切换。它不足以证明设计必然带来什么后果。"
