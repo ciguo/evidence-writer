@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Any
+
+from pydantic import ValidationError
 
 from .canonical import canonical_sha256
 from .contracts import (
     AllowedUse, ArtifactEnvelope, ArtifactType, Claim, ClaimOrigin, ClaimType,
-    EvidenceWriterBundle, ReviewAction, ReviewVerdict, Stage, StageStatus,
-    VerificationStatus,
+    EvidenceWriterBundle, Stage, StageStatus, VerificationStatus,
 )
 
 
@@ -92,6 +93,54 @@ def _validate_envelope(envelope: ArtifactEnvelope, expected_type: ArtifactType, 
         _issue(out, "DIGEST_INVALID", path, "artifact digest does not match canonical JSON")
 
 
+def _schema_violations(error: ValidationError) -> list[PolicyViolation]:
+    """Translate strict Contract-model rejection into stable fail-closed codes."""
+    code_by_error_type = {
+        "claim_authorization_matrix": "CLAIM_AUTHORIZATION_MATRIX",
+        "forbidden_authorized": "FORBIDDEN_AUTHORIZED",
+        "invalid_boundary_claim": "INVALID_BOUNDARY_CLAIM",
+        "review_finding_claim_ids": "REVIEW_FINDING_CLAIM_IDS",
+        "local_repair_text_required": "LOCAL_REPAIR_TEXT_REQUIRED",
+        "review_missing_final_text": "REVIEW_MISSING_FINAL_TEXT",
+        "review_verdict_conflict": "REVIEW_VERDICT_CONFLICT",
+        "local_repair_finding_required": "LOCAL_REPAIR_FINDING_REQUIRED",
+        "return_missing_reason": "RETURN_MISSING_REASON",
+        "return_finding_required": "RETURN_FINDING_REQUIRED",
+        "schema_version_mismatch": "SCHEMA_VERSION_MISMATCH",
+        "artifact_type_mismatch": "ARTIFACT_TYPE_MISMATCH",
+        "pass_missing_artifact": "PASS_MISSING_ARTIFACT",
+        "failed_stage_has_artifact": "FAILED_STAGE_HAS_ARTIFACT",
+        "failed_stage_missing_reason": "FAILED_STAGE_MISSING_REASON",
+        "capability_registry_ids_not_unique": "CAPABILITY_REGISTRY_IDS_NOT_UNIQUE",
+    }
+    out: list[PolicyViolation] = []
+    for item in error.errors(include_url=False):
+        path = ".".join(str(part) for part in item["loc"]) or "$"
+        error_type = item["type"]
+        code = code_by_error_type.get(error_type)
+        if code is None and path.endswith("stage") and error_type == "literal_error":
+            code = "TOP_LEVEL_STAGE_MISMATCH"
+        elif code is None and path.endswith("author_intent.fact_authority"):
+            code = "INTENT_FACT_AUTHORITY"
+        elif code is None and path.endswith("capability_plan.fact_authority"):
+            code = "CAPABILITY_FACT_AUTHORITY"
+        elif code is None and path.endswith("capability_plan.selected") and error_type == "too_long":
+            code = "CAPABILITY_OVER_MAX"
+        if code is None:
+            code = "SCHEMA_VALIDATION_FAILED"
+        _issue(out, code, path, item["msg"])
+    return out
+
+
+def validate_contract_data(data: dict[str, Any]) -> list[PolicyViolation]:
+    """Authoritative Contract ingress: strict model validation, then policy."""
+    try:
+        bundle = EvidenceWriterBundle.model_validate(data)
+    except ValidationError as error:
+        return _schema_violations(error)
+    return validate_bundle(bundle)
+
+
 def validate_bundle(bundle: EvidenceWriterBundle) -> list[PolicyViolation]:
     out: list[PolicyViolation] = []
     research_env = bundle.research_artifact_envelope
@@ -130,70 +179,79 @@ def validate_bundle(bundle: EvidenceWriterBundle) -> list[PolicyViolation]:
         if not prior_pass and result.stage_status is StageStatus.PASS:
             _issue(out, "INVALID_STAGE_TRANSITION", path, "a later stage cannot PASS after an earlier failure")
 
-    if any(result.stage_status is not StageStatus.PASS for result, _, _, _ in results):
-        return out
+    handoff = None
+    writer_input = None
+    draft = None
+    review = None
+    authorized_ids: set[str] = set()
+    boundary_ids: set[str] = set()
 
-    handoff = WriterHandoff.model_validate(bundle.auditor_result.artifact_envelope.artifact)
-    writer_input = WriterInput.model_validate(bundle.adapter_result.artifact_envelope.artifact)
-    draft = DraftArtifact.model_validate(bundle.writer_result.artifact_envelope.artifact)
-    review = ReviewResult.model_validate(bundle.final_review_result.artifact_envelope.artifact)
-    if handoff.input_artifact_digest != research_env.canonical_json_sha256:
-        _issue(out, "PROVENANCE_DIGEST_MISMATCH", "writer_handoff.input_artifact_digest", "must equal research envelope digest")
-    if writer_input.input_artifact_digest != bundle.auditor_result.artifact_envelope.canonical_json_sha256:
-        _issue(out, "PROVENANCE_DIGEST_MISMATCH", "writer_input.input_artifact_digest", "must equal handoff envelope digest")
-    if draft.input_artifact_digest != bundle.adapter_result.artifact_envelope.canonical_json_sha256:
-        _issue(out, "PROVENANCE_DIGEST_MISMATCH", "draft.input_artifact_digest", "must equal writer input envelope digest")
-    if review.reviewed_draft_digest != bundle.writer_result.artifact_envelope.canonical_json_sha256:
-        _issue(out, "PROVENANCE_DIGEST_MISMATCH", "review.reviewed_draft_digest", "must equal draft envelope digest")
-    h_sources = {source.id for source in handoff.sources}
-    all_h_claims = handoff.authorized_claims + handoff.boundary_claims
-    _validate_claim_graph(all_h_claims, h_sources, "writer_handoff.claims", out)
-    authorized_ids = {claim.id for claim in handoff.authorized_claims}
-    boundary_ids = {claim.id for claim in handoff.boundary_claims}
-    if authorized_ids & boundary_ids:
-        _issue(out, "AUTHORIZED_BOUNDARY_OVERLAP", "writer_handoff", "claim cannot be both authorized and boundary")
-    if any(claim.claim_type not in {ClaimType.FACT, ClaimType.SIGNAL, ClaimType.HYPOTHESIS} for claim in handoff.authorized_claims):
-        _issue(out, "FORBIDDEN_AUTHORIZED", "writer_handoff.authorized_claims", "only FACT/SIGNAL/HYPOTHESIS may be authorized")
-    if any(claim.claim_type not in {ClaimType.LIMIT, ClaimType.FORBIDDEN} for claim in handoff.boundary_claims):
-        _issue(out, "INVALID_BOUNDARY_CLAIM", "writer_handoff.boundary_claims", "boundary may only contain LIMIT/FORBIDDEN")
-    registry = set(bundle.capability_registry_snapshot.capability_ids)
-    if writer_input.capability_plan.registry_version != bundle.capability_registry_snapshot.registry_version:
-        _issue(out, "CAPABILITY_REGISTRY_VERSION_MISMATCH", "capability_plan", "registry version differs")
-    for item in writer_input.capability_plan.selected:
-        if item.capability_id not in registry:
-            _issue(out, "UNKNOWN_CAPABILITY_ID", "capability_plan.selected", "capability absent from registry")
-    if len(writer_input.capability_plan.selected) > 3:
-        _issue(out, "CAPABILITY_OVER_MAX", "capability_plan.selected", "at most three capabilities are allowed")
-    if writer_input.author_intent.fact_authority != "NONE":
-        _issue(out, "INTENT_FACT_AUTHORITY", "author_intent.fact_authority", "Author Intent has no fact authority")
-    if writer_input.capability_plan.fact_authority != "NONE":
-        _issue(out, "CAPABILITY_FACT_AUTHORITY", "capability_plan.fact_authority", "Capability Plan has no fact authority")
-    findings = review.findings
-    known_claims = authorized_ids | boundary_ids
-    for finding in findings:
-        if len(finding.evidence_claim_ids) != len(set(finding.evidence_claim_ids)) or not set(finding.evidence_claim_ids) <= known_claims:
-            _issue(out, "REVIEW_FINDING_CLAIM_IDS", "review.findings", "finding claim references must be unique and known")
-        start = finding.location.get("start_line", 0)
-        end = finding.location.get("end_line", 0)
-        if start < 1 or end < start:
-            _issue(out, "REVIEW_FINDING_LINE_RANGE", "review.findings", "invalid line range")
-        if finding.action is ReviewAction.LOCAL_REPAIR and not finding.repaired_text:
-            _issue(out, "LOCAL_REPAIR_TEXT_REQUIRED", "review.findings", "LOCAL_REPAIR requires repaired_text")
-    if review.review_verdict is ReviewVerdict.PASS:
-        if not review.final_text:
-            _issue(out, "REVIEW_MISSING_FINAL_TEXT", "review", "PASS requires final_text")
-        if any(finding.action is ReviewAction.RETURN_TO_WRITER for finding in findings):
-            _issue(out, "REVIEW_VERDICT_CONFLICT", "review", "PASS cannot have RETURN_TO_WRITER finding")
-    elif review.review_verdict is ReviewVerdict.LOCAL_REPAIR:
-        if not review.final_text:
-            _issue(out, "REVIEW_MISSING_FINAL_TEXT", "review", "LOCAL_REPAIR requires final_text")
-        if not any(finding.action is ReviewAction.LOCAL_REPAIR for finding in findings):
-            _issue(out, "LOCAL_REPAIR_FINDING_REQUIRED", "review", "LOCAL_REPAIR requires repair finding")
-    else:
-        if not review.return_reason:
-            _issue(out, "RETURN_MISSING_REASON", "review", "RETURN_TO_WRITER requires return_reason")
-        if not any(finding.action is ReviewAction.RETURN_TO_WRITER for finding in findings):
-            _issue(out, "RETURN_FINDING_REQUIRED", "review", "RETURN_TO_WRITER requires matching finding")
+    # Every PASS artifact is validated independently.  A downstream BLOCKED
+    # result never suppresses validation of an upstream artifact that exists.
+    if bundle.auditor_result.stage_status is StageStatus.PASS:
+        handoff_env = bundle.auditor_result.artifact_envelope
+        assert handoff_env is not None
+        handoff = WriterHandoff.model_validate(handoff_env.artifact)
+        if handoff.input_artifact_digest != research_env.canonical_json_sha256:
+            _issue(out, "PROVENANCE_DIGEST_MISMATCH", "writer_handoff.input_artifact_digest", "must equal research envelope digest")
+        h_sources = {source.id for source in handoff.sources}
+        all_h_claims = handoff.authorized_claims + handoff.boundary_claims
+        _validate_claim_graph(all_h_claims, h_sources, "writer_handoff.claims", out)
+        authorized_ids = {claim.id for claim in handoff.authorized_claims}
+        boundary_ids = {claim.id for claim in handoff.boundary_claims}
+        if authorized_ids & boundary_ids:
+            _issue(out, "AUTHORIZED_BOUNDARY_OVERLAP", "writer_handoff", "claim cannot be both authorized and boundary")
+        if any(claim.claim_type not in {ClaimType.FACT, ClaimType.SIGNAL, ClaimType.HYPOTHESIS} for claim in handoff.authorized_claims):
+            _issue(out, "FORBIDDEN_AUTHORIZED", "writer_handoff.authorized_claims", "only FACT/SIGNAL/HYPOTHESIS may be authorized")
+        if any(claim.claim_type not in {ClaimType.LIMIT, ClaimType.FORBIDDEN} for claim in handoff.boundary_claims):
+            _issue(out, "INVALID_BOUNDARY_CLAIM", "writer_handoff.boundary_claims", "boundary may only contain LIMIT/FORBIDDEN")
+
+    if bundle.adapter_result.stage_status is StageStatus.PASS:
+        input_env = bundle.adapter_result.artifact_envelope
+        assert input_env is not None
+        writer_input = WriterInput.model_validate(input_env.artifact)
+        if handoff is not None:
+            handoff_env = bundle.auditor_result.artifact_envelope
+            assert handoff_env is not None
+            if writer_input.input_artifact_digest != handoff_env.canonical_json_sha256:
+                _issue(out, "PROVENANCE_DIGEST_MISMATCH", "writer_input.input_artifact_digest", "must equal handoff envelope digest")
+            embedded_handoff = input_env.artifact["evidence_handoff"]
+            if canonical_sha256(embedded_handoff) != handoff_env.canonical_json_sha256:
+                _issue(
+                    out,
+                    "EMBEDDED_HANDOFF_MISMATCH",
+                    "writer_input.evidence_handoff",
+                    "embedded handoff must exactly match the upstream handoff artifact",
+                )
+        registry = set(bundle.capability_registry_snapshot.capability_ids)
+        if writer_input.capability_plan.registry_version != bundle.capability_registry_snapshot.registry_version:
+            _issue(out, "CAPABILITY_REGISTRY_VERSION_MISMATCH", "capability_plan", "registry version differs")
+        for item in writer_input.capability_plan.selected:
+            if item.capability_id not in registry:
+                _issue(out, "UNKNOWN_CAPABILITY_ID", "capability_plan.selected", "capability absent from registry")
+
+    if bundle.writer_result.stage_status is StageStatus.PASS:
+        draft_env = bundle.writer_result.artifact_envelope
+        assert draft_env is not None
+        draft = DraftArtifact.model_validate(draft_env.artifact)
+        input_env = bundle.adapter_result.artifact_envelope
+        if input_env is not None and draft.input_artifact_digest != input_env.canonical_json_sha256:
+            _issue(out, "PROVENANCE_DIGEST_MISMATCH", "draft.input_artifact_digest", "must equal writer input envelope digest")
+
+    if bundle.final_review_result.stage_status is StageStatus.PASS:
+        review_env = bundle.final_review_result.artifact_envelope
+        assert review_env is not None
+        review = ReviewResult.model_validate(review_env.artifact)
+        draft_env = bundle.writer_result.artifact_envelope
+        if draft_env is not None and review.reviewed_draft_digest != draft_env.canonical_json_sha256:
+            _issue(out, "PROVENANCE_DIGEST_MISMATCH", "review.reviewed_draft_digest", "must equal draft envelope digest")
+        findings = review.findings
+        known_claims = authorized_ids | boundary_ids
+        for finding in findings:
+            if not set(finding.evidence_claim_ids) <= known_claims:
+                _issue(out, "REVIEW_FINDING_CLAIM_IDS", "review.findings", "finding claim references must be unique and known")
+            if finding.location.end_line < finding.location.start_line:
+                _issue(out, "REVIEW_FINDING_LINE_RANGE", "review.findings", "invalid line range")
     return out
 
 
@@ -202,3 +260,11 @@ def ensure_bundle_valid(bundle: EvidenceWriterBundle) -> None:
     if violations:
         formatted = "; ".join(f"{item.code}@{item.path}" for item in violations)
         raise ValueError(formatted)
+
+
+def ensure_contract_data_valid(data: dict[str, Any]) -> EvidenceWriterBundle:
+    violations = validate_contract_data(data)
+    if violations:
+        formatted = "; ".join(f"{item.code}@{item.path}" for item in violations)
+        raise ValueError(formatted)
+    return EvidenceWriterBundle.model_validate(data)
