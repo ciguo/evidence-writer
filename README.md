@@ -1,16 +1,15 @@
 # Evidence Writer
 
-Evidence Writer is an evidence-bounded nonfiction writing pipeline. This first
-implementation slice contains only the frozen v0.1.3 Contract Core:
+Evidence Writer is an evidence-bounded nonfiction writing pipeline. Version
+0.1.0 now contains three deliberately separate layers:
 
-- Pydantic Contract models;
-- deterministic policy validation;
-- RFC 8785-compatible canonical JSON for the frozen Contract domain;
-- SHA-256 artifact provenance checks;
-- executable valid and negative Contract fixtures.
+- the frozen v0.1.3 Contract Core and deterministic policies;
+- a thin, injected-handler Pipeline Runner with verified filesystem storage;
+- a vendor-neutral provider protocol and an offline deterministic FakeProvider.
 
-It intentionally contains **no** Runner, Provider, Auditor runtime, Writer
-runtime, Final Review runtime, Web UI, database, RAG, or Production integration.
+There is still no real Auditor, Adapter, Writer, or Final Review LLM logic.
+There are no prompts, research runtime, capability selection, Reference Library
+runtime, UI, database, RAG, CI/CD, or Production integration.
 
 ## Requirements
 
@@ -18,22 +17,53 @@ runtime, Final Review runtime, Web UI, database, RAG, or Production integration.
 
 ## Install and verify
 
-```bash
-python -m venv .venv
-. .venv/bin/activate
-pip install -e .
-python -m unittest discover -s tests -v
-```
+    python -m venv .venv
+    . .venv/bin/activate
+    pip install -e .
+    python -m unittest discover -s tests -v
 
-The suite validates the valid contract chain, the 17 declared negative fixtures,
-empty boundary fallback, digest/provenance integrity, embedded WriterHandoff
-identity, independent validation of every PASS artifact, schema/model parity,
-and failure-stage fail-closed behavior.
+The full suite retains every Contract Core regression and adds serialization,
+pipeline stop-state, storage read-back, provider isolation, and CLI coverage. It
+does not require a network connection or API key.
 
-Raw JSON/YAML data must enter through `validate_contract_data` (or the raising
-`ensure_contract_data_valid` helper). The ingress first applies the strict
-v0.1.3 Pydantic Contract models and only then runs deterministic policy checks;
-callers must not bypass this boundary by constructing unchecked objects.
+## Contract serialization boundary
+
+Every model or Python value must pass through
+`evidence_writer.serialization.to_contract_json` before JCS or SHA-256.
+`canonical_json` and `canonical_sha256` use that entry automatically. Stage
+implementations must not hash Python repr, YAML text, formatted JSON, or private
+stage-specific serialization.
+
+## CLI
+
+Validate the frozen complete-chain example:
+
+    evidence-writer validate schema_examples/complete_chain.valid.yaml
+
+Run the synthetic pipeline:
+
+    evidence-writer run examples/synthetic_run.yaml
+
+A successful run reports `status=COMPLETE`, the terminal stage, error code,
+and artifact paths. It writes:
+
+    output/synthetic/
+      01_writer_handoff.json
+      02_writer_input.json
+      03_draft.json
+      04_review.json
+      final.md
+
+The run command uses only configured synthetic StageResults. It performs no
+network call and contains no real writing behavior.
+
+## Runner stop semantics
+
+Only a fully validated PASS artifact can reach the next injected handler. FAIL,
+BLOCKED, invalid Contract data, invalid digest/provenance, deterministic-policy
+failure, provider error, or storage read-back failure stops execution. The
+Runner never calls downstream handlers after that point and emits formal
+BLOCKED StageResults for every remaining stage.
 
 ## Boundaries
 
@@ -42,5 +72,4 @@ callers must not bypass this boundary by constructing unchecked objects.
 - Author Intent and Capability have no fact authority.
 - Reference Library is not a runtime dependency.
 - Modern copyrighted material defaults to link-only/no-quote.
-
-The next implementation phase is intentionally blocked pending code audit.
+- The next phase remains blocked until `LLM_STAGE_IMPLEMENTATION AUTHORIZED`.

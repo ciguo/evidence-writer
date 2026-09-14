@@ -12,6 +12,9 @@ dependencies = [
   "PyYAML>=6,<7",
 ]
 
+[project.scripts]
+evidence-writer = "evidence_writer.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

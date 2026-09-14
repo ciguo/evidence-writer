@@ -1,0 +1,3 @@
+bundle_file: ../schema_examples/complete_chain.valid.yaml
+output_dir: ../output
+run_id: synthetic

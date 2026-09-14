@@ -1,7 +1,7 @@
 """RFC 8785-compatible canonical JSON for the Contract domain.
 
-The frozen v0.1.3 contracts have no floating-point fields.  Floats are
-therefore rejected instead of silently using a non-JCS Python representation.
+The frozen v0.1.3 contracts have no floating-point fields. Floats are rejected
+instead of silently using a non-JCS Python representation.
 """
 
 from __future__ import annotations
@@ -9,6 +9,8 @@ from __future__ import annotations
 import hashlib
 import json
 from typing import Any
+
+from .serialization import ContractSerializationError, to_contract_json
 
 
 class CanonicalizationError(ValueError):
@@ -19,14 +21,7 @@ def _quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
-def canonical_json(value: Any) -> str:
-    """Serialize the Contract JSON domain deterministically.
-
-    Object keys use UTF-16 code-unit ordering, as required by RFC 8785.  The
-    Contract schemas deliberately reject floating-point fields; rejecting them
-    here prevents accidental divergence from ECMAScript number serialization.
-    """
-
+def _render_json(value: Any) -> str:
     if value is None:
         return "null"
     if value is True:
@@ -37,16 +32,25 @@ def canonical_json(value: Any) -> str:
         return _quote(value)
     if isinstance(value, int):
         return str(value)
-    if isinstance(value, float):
-        raise CanonicalizationError("floats are not permitted by Contract v0.1.3")
     if isinstance(value, list):
-        return "[" + ",".join(canonical_json(item) for item in value) + "]"
+        return "[" + ",".join(_render_json(item) for item in value) + "]"
     if isinstance(value, dict):
-        if not all(isinstance(key, str) for key in value):
-            raise CanonicalizationError("JSON object keys must be strings")
         keys = sorted(value, key=lambda key: key.encode("utf-16be"))
-        return "{" + ",".join(_quote(key) + ":" + canonical_json(value[key]) for key in keys) + "}"
-    raise CanonicalizationError(f"unsupported Contract value type: {type(value).__name__}")
+        return "{" + ",".join(
+            _quote(key) + ":" + _render_json(value[key]) for key in keys
+        ) + "}"
+    raise CanonicalizationError(
+        f"unsupported normalized Contract value type: {type(value).__name__}"
+    )
+
+
+def canonical_json(value: Any) -> str:
+    """Serialize through the sole Contract boundary, then apply JCS ordering."""
+    try:
+        normalized = to_contract_json(value)
+    except ContractSerializationError as error:
+        raise CanonicalizationError(str(error)) from error
+    return _render_json(normalized)
 
 
 def canonical_sha256(value: Any) -> str:
