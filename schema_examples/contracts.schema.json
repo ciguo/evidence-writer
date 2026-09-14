@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/evidence-writer/contracts/0.1.2",
+  "title": "Evidence Writer Architecture / Contracts v0.1.2",
+  "type": "object",
+  "required": ["research_package", "capability_registry_snapshot", "auditor_result", "adapter_result", "writer_result", "final_review_result"],
+  "properties": {
+    "research_package": {"$ref": "#/$defs/ResearchPackage"},
+    "capability_registry_snapshot": {"$ref": "#/$defs/Registry"},
+    "auditor_result": {"$ref": "#/$defs/StageResult"},
+    "adapter_result": {"$ref": "#/$defs/StageResult"},
+    "writer_result": {"$ref": "#/$defs/StageResult"},
+    "final_review_result": {"$ref": "#/$defs/StageResult"}
+  },
+  "$defs": {
+    "Digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "Stage": {"enum": ["AUDITOR", "ADAPTER", "WRITER", "FINAL_REVIEW"]},
+    "StageStatus": {"enum": ["PASS", "FAIL", "BLOCKED"]},
+    "ClaimType": {"enum": ["FACT", "SIGNAL", "HYPOTHESIS", "LIMIT", "FORBIDDEN"]},
+    "Claim": {
+      "type": "object",
+      "required": ["id", "claim_type", "text", "source_ids", "supporting_claim_ids", "origin", "evidence_level", "scope", "allowed_use", "verification_status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^C-[A-Za-z0-9_-]+$"},
+        "claim_type": {"$ref": "#/$defs/ClaimType"},
+        "text": {"type": "string", "minLength": 1},
+        "source_ids": {"type": "array", "items": {"type": "string", "pattern": "^S-[A-Za-z0-9_-]+$"}},
+        "supporting_claim_ids": {"type": "array", "items": {"type": "string", "pattern": "^C-[A-Za-z0-9_-]+$"}},
+        "origin": {"enum": ["SOURCE_BACKED", "DERIVED", "AUTHOR_HYPOTHESIS"]},
+        "evidence_level": {"enum": ["PRIMARY", "SECONDARY", "CONTEXTUAL", "NONE"]},
+        "scope": {"type": "string", "minLength": 1},
+        "as_of": {"type": "string", "format": "date"},
+        "allowed_use": {"type": "array", "minItems": 1, "items": {"enum": ["state", "qualify", "limit", "forbid"]}},
+        "verification_status": {"enum": ["VERIFIED", "PARTIAL", "UNVERIFIED", "FORBIDDEN"]}
+      },
+      "allOf": [{"if": {"properties": {"origin": {"const": "AUTHOR_HYPOTHESIS"}}}, "then": {"properties": {"claim_type": {"const": "HYPOTHESIS"}}}}],
+      "additionalProperties": false
+    },
+    "Source": {
+      "type": "object",
+      "required": ["id", "title", "url", "accessed_at", "rights_status"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^S-[A-Za-z0-9_-]+$"},
+        "title": {"type": "string", "minLength": 1},
+        "url": {"type": "string", "format": "uri"},
+        "published_at": {"type": "string", "format": "date"},
+        "accessed_at": {"type": "string", "format": "date"},
+        "rights_status": {"enum": ["SYNTHETIC", "PUBLIC_DOMAIN", "LICENSED", "LINK_ONLY", "UNKNOWN"]}
+      },
+      "additionalProperties": false
+    },
+    "ResearchPackage": {
+      "type": "object",
+      "required": ["schema_version", "topic", "sources", "claims"],
+      "properties": {"schema_version": {"const": "research-package/0.1.2"}, "topic": {"type": "string", "minLength": 1}, "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Source"}}, "claims": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Claim"}}},
+      "additionalProperties": false
+    },
+    "WriterHandoff": {
+      "type": "object",
+      "required": ["schema_version", "evidence_authority", "sources", "authorized_claims", "boundary_claims"],
+      "properties": {
+        "schema_version": {"const": "writer-handoff/0.1.2"},
+        "evidence_authority": {"const": "WRITER_HANDOFF_ONLY"},
+        "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Source"}},
+        "authorized_claims": {"type": "array", "minItems": 1, "items": {"allOf": [{"$ref": "#/$defs/Claim"}, {"properties": {"claim_type": {"enum": ["FACT", "SIGNAL", "HYPOTHESIS"]}}}]}},
+        "boundary_claims": {"type": "array", "minItems": 1, "items": {"allOf": [{"$ref": "#/$defs/Claim"}, {"properties": {"claim_type": {"enum": ["LIMIT", "FORBIDDEN"]}}}]}, "contains": {"properties": {"claim_type": {"const": "FORBIDDEN"}}}}
+      },
+      "additionalProperties": false
+    },
+    "AuthorIntent": {
+      "type": "object",
+      "required": ["schema_version", "fact_authority", "why_now", "central_tension", "core_position", "emotional_state", "distance_to_object", "do_not_become", "ending_destination"],
+      "properties": {
+        "schema_version": {"const": "author-intent/0.1.2"},
+        "fact_authority": {"const": "NONE"},
+        "why_now": {"type": "string"}, "central_tension": {"type": "string"}, "core_position": {"type": "string"},
+        "emotional_state": {"type": "string", "minLength": 1, "description": "May be the literal token UNSET for automatic mode."},
+        "distance_to_object": {"type": "string"}, "do_not_become": {"type": "string"}, "ending_destination": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "CapabilityPlan": {
+      "type": "object",
+      "required": ["schema_version", "registry_version", "fact_authority", "selected"],
+      "properties": {
+        "schema_version": {"const": "capability-plan/0.1.2"}, "registry_version": {"type": "string", "minLength": 1}, "fact_authority": {"const": "NONE"},
+        "selected": {"type": "array", "maxItems": 3, "items": {"type": "object", "required": ["capability_id", "objective", "execution_directive", "skip_if", "success_check"], "properties": {"capability_id": {"type": "string", "minLength": 1}, "objective": {"type": "string"}, "execution_directive": {"type": "string"}, "skip_if": {"type": "string"}, "success_check": {"type": "string"}}, "additionalProperties": false}}
+      },
+      "additionalProperties": false
+    },
+    "WriterInput": {
+      "type": "object",
+      "required": ["schema_version", "evidence_handoff", "author_intent", "capability_plan"],
+      "properties": {"schema_version": {"const": "writer-input/0.1.2"}, "evidence_handoff": {"$ref": "#/$defs/WriterHandoff"}, "author_intent": {"$ref": "#/$defs/AuthorIntent"}, "capability_plan": {"$ref": "#/$defs/CapabilityPlan"}},
+      "additionalProperties": false
+    },
+    "DraftArtifact": {
+      "type": "object",
+      "required": ["schema_version", "input_digest", "draft_markdown", "generation_metadata"],
+      "properties": {"schema_version": {"const": "draft-artifact/0.1.2"}, "input_digest": {"$ref": "#/$defs/Digest"}, "draft_markdown": {"type": "string"}, "generation_metadata": {"type": "object"}},
+      "additionalProperties": false
+    },
+    "ReviewFinding": {
+      "type": "object",
+      "required": ["finding_type", "location", "original_text", "evidence_claim_ids", "action", "reason"],
+      "properties": {
+        "finding_type": {"enum": ["EXTERNAL_FACT", "NUMBER_TIME_PLACE", "ACTION", "SCENE", "QUOTE", "GROUP_TRAIT", "PSYCHOLOGY", "MOTIVE", "CAUSALITY", "PROFESSIONAL_JUDGMENT"]},
+        "location": {"type": "object", "required": ["start_line", "end_line"], "properties": {"start_line": {"type": "integer", "minimum": 1}, "end_line": {"type": "integer", "minimum": 1}}, "additionalProperties": false},
+        "original_text": {"type": "string", "minLength": 1}, "evidence_claim_ids": {"type": "array", "items": {"type": "string"}}, "action": {"enum": ["FLAG", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "repaired_text": {"type": ["string", "null"]}, "reason": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "ReviewResult": {
+      "type": "object",
+      "required": ["schema_version", "review_verdict", "findings"],
+      "properties": {"schema_version": {"const": "review-result/0.1.2"}, "review_verdict": {"enum": ["PASS", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "findings": {"type": "array", "items": {"$ref": "#/$defs/ReviewFinding"}}, "final_text": {"type": "string", "minLength": 1}, "return_reason": {"type": "string", "minLength": 1}},
+      "allOf": [
+        {"if": {"properties": {"review_verdict": {"enum": ["PASS", "LOCAL_REPAIR"]}}}, "then": {"required": ["final_text"]}},
+        {"if": {"properties": {"review_verdict": {"const": "RETURN_TO_WRITER"}}}, "then": {"required": ["return_reason"]}}
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactEnvelope": {
+      "type": "object",
+      "required": ["artifact_type", "artifact_schema_version", "canonical_json_sha256", "artifact"],
+      "properties": {"artifact_type": {"enum": ["WriterHandoff", "WriterInput", "DraftArtifact", "ReviewResult"]}, "artifact_schema_version": {"type": "string", "minLength": 1}, "canonical_json_sha256": {"$ref": "#/$defs/Digest"}, "artifact": {"type": "object"}},
+      "oneOf": [
+        {"properties": {"artifact_type": {"const": "WriterHandoff"}, "artifact": {"$ref": "#/$defs/WriterHandoff"}}},
+        {"properties": {"artifact_type": {"const": "WriterInput"}, "artifact": {"$ref": "#/$defs/WriterInput"}}},
+        {"properties": {"artifact_type": {"const": "DraftArtifact"}, "artifact": {"$ref": "#/$defs/DraftArtifact"}}},
+        {"properties": {"artifact_type": {"const": "ReviewResult"}, "artifact": {"$ref": "#/$defs/ReviewResult"}}}
+      ],
+      "additionalProperties": false
+    },
+    "StageResult": {
+      "type": "object",
+      "required": ["stage", "stage_status"],
+      "properties": {"stage": {"$ref": "#/$defs/Stage"}, "stage_status": {"$ref": "#/$defs/StageStatus"}, "artifact_envelope": {"$ref": "#/$defs/ArtifactEnvelope"}, "error_code": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}},
+      "allOf": [
+        {"if": {"properties": {"stage_status": {"const": "PASS"}}}, "then": {"required": ["artifact_envelope"]}},
+        {"if": {"properties": {"stage_status": {"enum": ["FAIL", "BLOCKED"]}}}, "then": {"required": ["error_code", "reason"]}},
+        {"if": {"properties": {"stage": {"const": "AUDITOR"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "WriterHandoff"}}}}}},
+        {"if": {"properties": {"stage": {"const": "ADAPTER"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "WriterInput"}}}}}},
+        {"if": {"properties": {"stage": {"const": "WRITER"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "DraftArtifact"}}}}}},
+        {"if": {"properties": {"stage": {"const": "FINAL_REVIEW"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "ReviewResult"}}}}}}
+      ],
+      "additionalProperties": false
+    },
+    "Registry": {
+      "type": "object",
+      "required": ["schema_version", "registry_version", "capability_ids"],
+      "properties": {"schema_version": {"const": "capability-registry/0.1"}, "registry_version": {"type": "string"}, "capability_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}},
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
