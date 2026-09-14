@@ -1,171 +1,108 @@
-# Evidence Writer｜Architecture / Contracts v0.1.2
+# Evidence Writer｜Contract Final Hardening v0.1.3
 
-**审计结论：CONDITIONAL PASS；不授权 runtime implementation。**  
-**范围：最后一次 Contract 修订；不新增 Runner、Provider、Auditor、Writer、Final Review runtime 或 CI。**  
+**状态：Contracts 条件冻结；不授权 runtime implementation。**  
+**范围：仅 Contract hardening 与 Contract fixtures；不重做 Architecture。**  
 **日期：2026-09-14**
 
-## 0. 结论与停线
+## 0. 结论与停止条件
 
-Production 隔离、Claim 五分类、Derived hypothesis、Author Intent/Capability 无事实权限、Reference Library 的非 runtime 定位、版权/隐私边界、Public Regression 与 Private Holdout 分离均维持通过。
+v0.1.2 已通过的 Production 隔离、WriterHandoff/WriterInput self-contained、五类 Claim、AuthorIntent 七字段与 UNSET、Capability fact_authority=NONE、Reference Library 非 runtime、现代版权 link_only/no_quote、Public Regression / Private Holdout 隔离、Provider abstraction、Topic Selection 不进入 v0.1 core，全部保持不变。
 
-本版修正 v0.1.1 的 Contract 缺口：
+v0.1.3 只修复 Contract 漏洞：顶层 stage 身份、Claim Authorization Matrix、boundary 空集、完整 artifact provenance、ReviewResult 条件语义、failure output 关闭。本轮完成并提交后立即停止，等待 IMPLEMENTATION AUTHORIZED。
 
-1. WriterHandoff 和 WriterInput 都改为 self-contained；
-2. operational stage status 与 Final Review 的 domain verdict 分离；
-3. ReviewFinding 结构化；
-4. 补齐可确定性验证的不变量和真实 SHA-256 digest 规则；
-5. AuthorIntent 保留七字段并允许 `EMOTIONAL_STATE=UNSET`。
+## 1. 正式仓库与隔离
 
-本文件、`contracts.schema.json`、`complete_chain.valid.yaml` 和最小 `.gitignore` 是唯一允许进入正式 GitHub Private 仓库的文件。**提交后立即停止，等待最终 Contract 审核。**
+正式源仓库为 Private [ciguo/evidence-writer](https://github.com/ciguo/evidence-writer)。Production 的 Google Drive、File/Folder ID、自动任务、运行路径、Manifest、每日生产链及其既有基线均不读取、不写入、不依赖、不同步。
 
-## 1. Production 隔离与正式仓库
+本环境不能解析 github.com，故无法用命令行 clone；scratch 只作为临时验证区。正式文件通过已授权 GitHub 连接器直接写入 Private repo，不将 scratch 当作正式源仓库。Production 不复制、不挂载、不建立 symlink、不作为 remote。
 
-正式仓库已核实为 Private `ciguo/evidence-writer`，当前为空，已授权账户具 admin/push 权限。Production 的 Google Drive、File/Folder ID、自动任务、运行路径、Manifest、每日生产链，以及 Topic Selection v1.1 audited、research-article-topic v1.1、audit-evidence-package v1.2.1-final、WRITER_INPUT 0.1、Capability Registry v0.1、chinese-article-drafter v1.4.0-rc1+input0.1、Final Review v1.0、IO Contract v0.1、Production Manifest v1.1 一律不读取、不写入、不依赖、不同步。
+## 2. 顶层 Stage 绑定
 
-本环境不能解析 `github.com`，不能进行命令行 clone；因此本地 scratch 仅用作临时 Contract 验证区，正式提交通过已授权 GitHub 连接器直接写入 `ciguo/evidence-writer`。它不再是正式源仓库。Production 不复制、不挂载、不建立 symlink、不作为 remote。
+顶层字段不再仅引用泛型 StageResult：
 
-最小 `.gitignore` 排除：`.env`、`.env.*`、`output/`、`private_holdout/`、`private_data/`、`tmp/`、`cache/`、`local_exports/`。
+| 顶层字段 | 唯一允许 stage | PASS artifact |
+|---|---|---|
+| auditor_result | AUDITOR | WriterHandoff |
+| adapter_result | ADAPTER | WriterInput |
+| writer_result | WRITER | DraftArtifact |
+| final_review_result | FINAL_REVIEW | ReviewResult |
 
-## 2. 公开资产边界
+StageResult.stage_status 仅表达运行状态：PASS / FAIL / BLOCKED。PASS 必有 ArtifactEnvelope；FAIL/BLOCKED 必有 error_code 和 reason，并禁止携带 artifact_envelope。可选 diagnostic 仅为调试，不进入 artifact provenance chain，也不得被任何后续 stage 消费。
 
-| 类别 | 处置 |
+## 3. Claim Authorization Matrix
+
+Claim 仍为统一模型：FACT / SIGNAL / HYPOTHESIS / LIMIT / FORBIDDEN。下列规则是 Schema + deterministic policy 的共同硬门：
+
+| 条件 | 允许 / 必须 |
 |---|---|
-| 新写 Contract、通用政策、合成或明确授权 fixture | 可公开 |
-| Production Prompt、真实文章、真实 Intent、Gold Corpus、编辑轨迹、私有评测 | Private / Exclude |
-| 审计/Writer/Final Review 的通用机制 | Rewrite，不复制生产原文 |
-| 密钥、ID、绝对路径、聊天记录、后台数据、揭盲材料、未确认版权正文 | Exclude |
+| SOURCE_BACKED | source_ids 至少 1 个 |
+| DERIVED | supporting_claim_ids 至少 1 个 |
+| AUTHOR_HYPOTHESIS | 只能是 HYPOTHESIS，allowed_use 只能为 [qualify] |
+| FACT 且含 state | verification_status=VERIFIED |
+| FACT 且 PARTIAL | allowed_use 只能为 [qualify] |
+| HYPOTHESIS | allowed_use 只能为 [qualify] |
+| LIMIT | allowed_use 只能为 [limit] |
+| FORBIDDEN | allowed_use 只能为 [forbid]，且状态必须 FORBIDDEN |
 
-Reference Library 继续不是 runtime 依赖。现代受版权保护作品默认 `link_only/no_quote`；`copyright_status=unknown` 也只链接。禁止 `write like X` 及同义功能。Private Holdout 永不入 Git，且不得默认使用 Gold Corpus、真实 Intent、私人文章、编辑轨迹或未经授权内容。
+WriterHandoff 的 authorized_claims 仅可承载通过此矩阵的 FACT、SIGNAL、HYPOTHESIS；UNVERIFIED/PARTIAL FACT 不得取得无条件 state，HYPOTHESIS 不得 state，FORBIDDEN 永远不得授权。
 
-## 3. Contract 链与权限
+## 4. WriterHandoff / WriterInput
 
-```text
-ResearchPackage
-  → Auditor StageResult<WriterHandoff>
-  → Adapter StageResult<WriterInput>
-  → Writer StageResult<DraftArtifact>
-  → Final Review StageResult<ReviewResult>
-```
+WriterHandoff 继续是 self-contained safe package，不读取 ResearchPackage，直接含：
 
-**唯一事实授权路径：**
+- 必要 sources；
+- authorized_claims（FACT/SIGNAL/HYPOTHESIS）；
+- boundary_claims（LIMIT/FORBIDDEN，允许空数组）；
+- evidence_authority=WRITER_HANDOFF_ONLY；
+- input_artifact_digest，指向 ResearchPackage envelope digest。
 
-```text
-ResearchPackage（仅 Auditor 可读）
-  → WriterHandoff.evidence_authority = WRITER_HANDOFF_ONLY
-  → Writer
-```
+没有 FORBIDDEN 不是错误；存在 FORBIDDEN 时必须满足 Authorization Matrix，且不得进入 authorized_claims。
 
-AuthorIntent 与 CapabilityPlan 都固定 `fact_authority=NONE`。Capability 只能影响组织、节奏、解释密度、情绪呈现、问题处理、结尾、知识呈现和作者位置；不能新增事实、数字、场景、动作、心理、动机、因果、机构意图或专业判断。
+WriterInput 继续直接嵌入 evidence_handoff、author_intent 和 capability_plan，不用裸字符串别名、数据库、RAG、resolver 或隐藏上下文。它的 input_artifact_digest 指向 WriterHandoff envelope digest。
 
-### 3.1 ResearchPackage
+## 5. 唯一 Digest 位置与 provenance chain
 
-只供 Auditor 读取。它直接持有 `Source[]` 和统一 `Claim[]`；Claim 仅可为 `FACT | SIGNAL | HYPOTHESIS | LIMIT | FORBIDDEN`。每个 Claim 同时拥有 `source_ids` 与 `supporting_claim_ids`，所以 `DERIVED` hypothesis 可以由合法 Claims 推导而不必拥有直接 URL。
+Artifact 的自身 digest 唯一存放在 ArtifactEnvelope.canonical_json_sha256。内部 artifact 不出现 canonical_json_sha256。ArtifactEnvelope.artifact_schema_version 作为外层声明保留，但必须与内部 artifact.schema_version 精确一致；内部版本是领域对象的版本真源，外层字段只用于拒绝错配 envelope。
 
-### 3.2 WriterHandoff：self-contained safe package
+Digest 固定为：
 
-WriterHandoff 不再使用 `accepted_claim_ids` 作为正文授权的唯一内容。它必须直接携带：
+    RFC 8785 JCS canonical JSON → UTF-8 bytes → SHA-256
 
-- `sources[]`：仅限被 handoff Claims 引用的必要来源元数据；
-- `authorized_claims[]`：允许 Writer 使用的 FACT、SIGNAL、HYPOTHESIS；
-- `boundary_claims[]`：所有相关 LIMIT 与 FORBIDDEN；
-- `evidence_authority=WRITER_HANDOFF_ONLY`；
-- `canonical_json_sha256`。
+格式为 sha256: 后接 64 个小写十六进制字符。任何 policy validator 必须复算；不得对 YAML 原文、格式化 JSON 或包含 envelope digest 的循环对象计算。
 
-Writer 不得读取 ResearchPackage；也不得通过 Capability、Intent 或外部常识补证。FORBIDDEN 不得出现在 `authorized_claims`。
+权威 provenance 字段如下：
 
-### 3.3 AuthorIntent：七字段与自动模式
+    WriterHandoff.input_artifact_digest  ← ResearchPackage envelope digest
+    WriterInput.input_artifact_digest    ← WriterHandoff envelope digest
+    DraftArtifact.input_artifact_digest  ← WriterInput envelope digest
+    ReviewResult.reviewed_draft_digest   ← DraftArtifact envelope digest
 
-必须完整保留：
+每个链接都由 deterministic policy 精确比对，不接受同一内容但不同 digest 的替代。
 
-```text
-WHY_NOW
-CENTRAL_TENSION
-CORE_POSITION
-EMOTIONAL_STATE
-DISTANCE_TO_OBJECT
-DO_NOT_BECOME
-ENDING_DESTINATION
-```
+## 6. Final Review Contract
 
-`EMOTIONAL_STATE` 可明确为 `UNSET`，表示自动/低干预模式；不是缺失字段，也不提供任何事实权限。
+ReviewResult.review_verdict 与 operational status 分离：
 
-### 3.4 CapabilityPlan
+| verdict | 约束 |
+|---|---|
+| PASS | 必有 final_text，不得有 RETURN_TO_WRITER finding |
+| LOCAL_REPAIR | 必有 final_text，至少一个 LOCAL_REPAIR finding；每个该 action 都必须有非空 repaired_text |
+| RETURN_TO_WRITER | 必有 return_reason，至少一个 RETURN_TO_WRITER finding |
 
-Plan 直接持有 0–3 条结构化选择：`CAPABILITY_ID`、`OBJECTIVE`、`EXECUTION_DIRECTIVE`、`SKIP_IF`、`SUCCESS_CHECK`。每个 Capability ID 必须存在于指定 Registry version；Registry 是独立的非事实控制资产，WriterInput 不加载整个 Reference Library。
+每个 ReviewFinding 必须有 finding_type、location、original_text、evidence_claim_ids、action、repaired_text、reason。evidence_claim_ids 只接受唯一 Claim ID 格式；end_line >= start_line 由 deterministic policy 检查。Final Review 仍只允许标记、局部删除/缩小/降级，不得补证据或整篇重写。
 
-### 3.5 WriterInput：self-contained
+## 7. Deterministic policy invariants
 
-`WriterInput` 直接嵌入 `evidence_handoff: WriterHandoff`、`author_intent: AuthorIntent` 与 `capability_plan: CapabilityPlan`，禁止 `"writer_handoff"` 等裸字符串别名。不得引入数据库、RAG、resolver 或隐藏上下文。
+后续实现必须 fail closed 检查：唯一 Source/Claim ID、无 dangling source/claim、无 self-reference、无 claim dependency cycle、授权/边界 Claim ID 不相交、FORBIDDEN 不授权、AUTHOR_HYPOTHESIS 类型与权限、Capability Registry membership、0–3 Capability、Intent/Plan 无事实权限、所有 digest 重算与 provenance 链、envelope/internal schema 对应、ReviewFinding Claim ID 与行号、Stage failure artifact 禁止。
 
-## 4. StageResult / ArtifactEnvelope
+JSON Schema 负责字段结构、enum、部分 conditional 约束；跨对象引用、图、digest 与 Registry membership 只由确定性代码检查，不能交给 LLM。
 
-每个 operational stage 用统一 `StageResult` 表达：
+## 8. Fixtures、版权与 Holdout
 
-```yaml
-stage: AUDITOR | ADAPTER | WRITER | FINAL_REVIEW
-stage_status: PASS | FAIL | BLOCKED
-artifact_envelope: # 仅 PASS 必需
-  artifact_type:
-  artifact_schema_version:
-  canonical_json_sha256:
-  artifact:
-error_code: # FAIL / BLOCKED 必需
-reason:     # FAIL / BLOCKED 必需
-```
+contract_fixtures/negative_cases.yaml 记录 17 个 Contract 负例：保留 v0.1.2 的 7 例，并新增顶层 stage 错位、未验证 FACT state、HYPOTHESIS state、SOURCE_BACKED 无来源、DERIVED 无依据、schema version 不一致、PASS + RETURN finding、LOCAL_REPAIR 无 repaired text、错误 Draft digest 等。
 
-`PASS` 必须包含 artifact；`FAIL/BLOCKED` 必须包含 `error_code` 和 `reason`，**不得强制要求正文或其他 artifact**。Final Review 的内容结论不再滥用 stage_status，而是放在 `ReviewResult.review_verdict`：`PASS | LOCAL_REPAIR | RETURN_TO_WRITER`。
+Fixture 只用合成材料。Reference Library 不进入 runtime；现代受版权保护作品默认 link_only/no_quote；Private Holdout 永不入 Git，且不默认使用 Gold Corpus、真实 Intent、私人文章、编辑轨迹或未经授权内容。Package/spec 版本继续分离；License 只做兼容性审计，未宣布最终顶层 License。
 
-## 5. ReviewResult / ReviewFinding
+## 9. Stop Condition
 
-ReviewFinding 不得是 arbitrary array item；每项至少为：
-
-```yaml
-finding_type: EXTERNAL_FACT | NUMBER_TIME_PLACE | ACTION | SCENE | QUOTE | GROUP_TRAIT | PSYCHOLOGY | MOTIVE | CAUSALITY | PROFESSIONAL_JUDGMENT
-location: {start_line: 1, end_line: 1}
-original_text:
-evidence_claim_ids: []
-action: FLAG | LOCAL_REPAIR | RETURN_TO_WRITER
-repaired_text: null
-reason:
-```
-
-`review_verdict=PASS` 或 `LOCAL_REPAIR` 必须有 `final_text`；`RETURN_TO_WRITER` 必须有非空 `return_reason`。LOCAL_REPAIR 只允许删除、缩小或降级未经授权内容，不能补新证据；若删除导致主线坍塌，则 RETURN_TO_WRITER。Final Review 不作为第二 Writer，不整篇润色。
-
-## 6. Deterministic invariants
-
-后续 implementation 必须 fail closed 检查：
-
-1. Source ID 唯一，Claim ID 唯一；
-2. 所有 source/claim 引用均存在；不得 dangling；
-3. `supporting_claim_ids` 不得 self-reference，依赖图不得 cycle；
-4. WriterHandoff 的 authorized 与 prohibited/boundary Claim ID 不相交；
-5. FORBIDDEN 不得授权给 Writer；
-6. `AUTHOR_HYPOTHESIS` 只能配 `HYPOTHESIS`，不得伪装 FACT/SIGNAL/LIMIT/FORBIDDEN；
-7. Capability ID 必须存在于声明的 Registry version；
-8. Capability 数量为 0–3，Intent/Plan 的 `fact_authority=NONE`；
-9. 所有 digest 符合真实 SHA-256 格式，并对相应 Contract canonical JSON 复算一致；
-10. StageResult 与 ReviewResult 的条件字段满足本版规则。
-
-JSON Schema 负责结构和局部 enum/条件字段；引用完整性、图环、跨对象相交、Registry membership 与 digest 复算属于 deterministic policy layer，不得让 LLM 判断。
-
-## 7. Digest 规范
-
-所有 Contract digest 必须是：
-
-```text
-sha256:<64 个小写十六进制字符>
-```
-
-计算对象为对应 artifact 的 JSON 值，使用 RFC 8785 JSON Canonicalization Scheme（JCS）序列化为 UTF-8 字节，再计算 SHA-256。不得对 YAML 原文、含格式化空白的 JSON、或含 digest 字段自身的循环对象计算。若 artifact 包含 `canonical_json_sha256`，计算时将该字段排除；验证时以同一规则重算。
-
-## 8. Regression / Holdout / License
-
-Public regression 使用 synthetic、public-domain、licensed 或明确授权材料，不做全文一致性。最低覆盖：factual penetration、hypothesis laundering、unauthorized predicate、fabricated experience、unsupported psychology/causality、institutional motive speculation、input contract、zero-capability fallback。
-
-首发前仍须分开审计代码、spec、文档、Reference Card、fixture 与第三方依赖。Apache-2.0 与 MIT 仅为候选；在权利清单完成前不宣布统一顶层 License。
-
-## 9. 本轮验证与 Stop Condition
-
-本轮以 Schema validation 和临时 invalid fixtures 验证以下失败闭合情形：dangling claim、cyclic claim、Capability >3、fact_authority 非 NONE、FORBIDDEN 被授权、fake SHA-256、RETURN_TO_WRITER 缺 return_reason。
-
-完成正式仓库提交 `ARCHITECTURE_CONTRACTS_V0.1.2` 后，立即停止。未收到明确 `IMPLEMENTATION AUTHORIZED` 前，不得创建或运行 Runner、Provider、Auditor runtime、Writer runtime、Final Review runtime、CI 或测试实现。
+完成提交 CONTRACT_FINAL_HARDENING_V0.1.3 后停止。未收到明确 IMPLEMENTATION AUTHORIZED 前，不得开始 Runner、Provider、Auditor runtime、Writer runtime、Final Review runtime、CI 或任何生产实现。
