@@ -3,14 +3,14 @@
   "$id": "https://example.invalid/evidence-writer/contracts/0.1.2",
   "title": "Evidence Writer Architecture / Contracts v0.1.2",
   "type": "object",
-  "required": ["research_package", "capability_registry_snapshot", "auditor_result", "adapter_result", "writer_result", "final_review_result"],
+  "required": ["research_artifact_envelope", "capability_registry_snapshot", "auditor_result", "adapter_result", "writer_result", "final_review_result"],
   "properties": {
-    "research_package": {"$ref": "#/$defs/ResearchPackage"},
+    "research_artifact_envelope": {"$ref": "#/$defs/ResearchArtifactEnvelope"},
     "capability_registry_snapshot": {"$ref": "#/$defs/Registry"},
-    "auditor_result": {"$ref": "#/$defs/StageResult"},
-    "adapter_result": {"$ref": "#/$defs/StageResult"},
-    "writer_result": {"$ref": "#/$defs/StageResult"},
-    "final_review_result": {"$ref": "#/$defs/StageResult"}
+    "auditor_result": {"$ref": "#/$defs/AuditorStageResult"},
+    "adapter_result": {"$ref": "#/$defs/AdapterStageResult"},
+    "writer_result": {"$ref": "#/$defs/WriterStageResult"},
+    "final_review_result": {"$ref": "#/$defs/FinalReviewStageResult"}
   },
   "$defs": {
     "Digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
@@ -33,7 +33,16 @@
         "allowed_use": {"type": "array", "minItems": 1, "items": {"enum": ["state", "qualify", "limit", "forbid"]}},
         "verification_status": {"enum": ["VERIFIED", "PARTIAL", "UNVERIFIED", "FORBIDDEN"]}
       },
-      "allOf": [{"if": {"properties": {"origin": {"const": "AUTHOR_HYPOTHESIS"}}}, "then": {"properties": {"claim_type": {"const": "HYPOTHESIS"}}}}],
+      "allOf": [
+        {"if": {"properties": {"origin": {"const": "SOURCE_BACKED"}}}, "then": {"properties": {"source_ids": {"minItems": 1}}}},
+        {"if": {"properties": {"origin": {"const": "DERIVED"}}}, "then": {"properties": {"supporting_claim_ids": {"minItems": 1}}}},
+        {"if": {"properties": {"origin": {"const": "AUTHOR_HYPOTHESIS"}}}, "then": {"properties": {"claim_type": {"const": "HYPOTHESIS"}, "allowed_use": {"const": ["qualify"]}}}},
+        {"if": {"properties": {"claim_type": {"const": "FACT"}, "allowed_use": {"contains": {"const": "state"}}}}, "then": {"properties": {"verification_status": {"const": "VERIFIED"}}}},
+        {"if": {"properties": {"claim_type": {"const": "FACT"}, "verification_status": {"const": "PARTIAL"}}}, "then": {"properties": {"allowed_use": {"const": ["qualify"]}}}},
+        {"if": {"properties": {"claim_type": {"const": "HYPOTHESIS"}}}, "then": {"properties": {"allowed_use": {"const": ["qualify"]}}}},
+        {"if": {"properties": {"claim_type": {"const": "LIMIT"}}}, "then": {"properties": {"allowed_use": {"const": ["limit"]}}}},
+        {"if": {"properties": {"claim_type": {"const": "FORBIDDEN"}}}, "then": {"properties": {"allowed_use": {"const": ["forbid"]}, "verification_status": {"const": "FORBIDDEN"}}}}
+      ],
       "additionalProperties": false
     },
     "Source": {
@@ -57,13 +66,14 @@
     },
     "WriterHandoff": {
       "type": "object",
-      "required": ["schema_version", "evidence_authority", "sources", "authorized_claims", "boundary_claims"],
+      "required": ["schema_version", "evidence_authority", "input_artifact_digest", "sources", "authorized_claims", "boundary_claims"],
       "properties": {
         "schema_version": {"const": "writer-handoff/0.1.2"},
         "evidence_authority": {"const": "WRITER_HANDOFF_ONLY"},
+        "input_artifact_digest": {"$ref": "#/$defs/Digest"},
         "sources": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/Source"}},
         "authorized_claims": {"type": "array", "minItems": 1, "items": {"allOf": [{"$ref": "#/$defs/Claim"}, {"properties": {"claim_type": {"enum": ["FACT", "SIGNAL", "HYPOTHESIS"]}}}]}},
-        "boundary_claims": {"type": "array", "minItems": 1, "items": {"allOf": [{"$ref": "#/$defs/Claim"}, {"properties": {"claim_type": {"enum": ["LIMIT", "FORBIDDEN"]}}}]}, "contains": {"properties": {"claim_type": {"const": "FORBIDDEN"}}}}
+        "boundary_claims": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/Claim"}, {"properties": {"claim_type": {"enum": ["LIMIT", "FORBIDDEN"]}}}]}}
       },
       "additionalProperties": false
     },
@@ -90,14 +100,14 @@
     },
     "WriterInput": {
       "type": "object",
-      "required": ["schema_version", "evidence_handoff", "author_intent", "capability_plan"],
-      "properties": {"schema_version": {"const": "writer-input/0.1.2"}, "evidence_handoff": {"$ref": "#/$defs/WriterHandoff"}, "author_intent": {"$ref": "#/$defs/AuthorIntent"}, "capability_plan": {"$ref": "#/$defs/CapabilityPlan"}},
+      "required": ["schema_version", "input_artifact_digest", "evidence_handoff", "author_intent", "capability_plan"],
+      "properties": {"schema_version": {"const": "writer-input/0.1.2"}, "input_artifact_digest": {"$ref": "#/$defs/Digest"}, "evidence_handoff": {"$ref": "#/$defs/WriterHandoff"}, "author_intent": {"$ref": "#/$defs/AuthorIntent"}, "capability_plan": {"$ref": "#/$defs/CapabilityPlan"}},
       "additionalProperties": false
     },
     "DraftArtifact": {
       "type": "object",
-      "required": ["schema_version", "input_digest", "draft_markdown", "generation_metadata"],
-      "properties": {"schema_version": {"const": "draft-artifact/0.1.2"}, "input_digest": {"$ref": "#/$defs/Digest"}, "draft_markdown": {"type": "string"}, "generation_metadata": {"type": "object"}},
+      "required": ["schema_version", "input_artifact_digest", "draft_markdown", "generation_metadata"],
+      "properties": {"schema_version": {"const": "draft-artifact/0.1.2"}, "input_artifact_digest": {"$ref": "#/$defs/Digest"}, "draft_markdown": {"type": "string"}, "generation_metadata": {"type": "object"}},
       "additionalProperties": false
     },
     "ReviewFinding": {
@@ -106,39 +116,42 @@
       "properties": {
         "finding_type": {"enum": ["EXTERNAL_FACT", "NUMBER_TIME_PLACE", "ACTION", "SCENE", "QUOTE", "GROUP_TRAIT", "PSYCHOLOGY", "MOTIVE", "CAUSALITY", "PROFESSIONAL_JUDGMENT"]},
         "location": {"type": "object", "required": ["start_line", "end_line"], "properties": {"start_line": {"type": "integer", "minimum": 1}, "end_line": {"type": "integer", "minimum": 1}}, "additionalProperties": false},
-        "original_text": {"type": "string", "minLength": 1}, "evidence_claim_ids": {"type": "array", "items": {"type": "string"}}, "action": {"enum": ["FLAG", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "repaired_text": {"type": ["string", "null"]}, "reason": {"type": "string", "minLength": 1}
+        "original_text": {"type": "string", "minLength": 1}, "evidence_claim_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "pattern": "^C-[A-Za-z0-9_-]+$"}}, "action": {"enum": ["FLAG", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "repaired_text": {"type": ["string", "null"]}, "reason": {"type": "string", "minLength": 1}
       },
+      "allOf": [{"if": {"properties": {"action": {"const": "LOCAL_REPAIR"}}}, "then": {"required": ["repaired_text"], "properties": {"repaired_text": {"type": "string", "minLength": 1}}}}],
       "additionalProperties": false
     },
     "ReviewResult": {
       "type": "object",
-      "required": ["schema_version", "review_verdict", "findings"],
-      "properties": {"schema_version": {"const": "review-result/0.1.2"}, "review_verdict": {"enum": ["PASS", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "findings": {"type": "array", "items": {"$ref": "#/$defs/ReviewFinding"}}, "final_text": {"type": "string", "minLength": 1}, "return_reason": {"type": "string", "minLength": 1}},
+      "required": ["schema_version", "reviewed_draft_digest", "review_verdict", "findings"],
+      "properties": {"schema_version": {"const": "review-result/0.1.2"}, "reviewed_draft_digest": {"$ref": "#/$defs/Digest"}, "review_verdict": {"enum": ["PASS", "LOCAL_REPAIR", "RETURN_TO_WRITER"]}, "findings": {"type": "array", "items": {"$ref": "#/$defs/ReviewFinding"}}, "final_text": {"type": "string", "minLength": 1}, "return_reason": {"type": "string", "minLength": 1}},
       "allOf": [
-        {"if": {"properties": {"review_verdict": {"enum": ["PASS", "LOCAL_REPAIR"]}}}, "then": {"required": ["final_text"]}},
-        {"if": {"properties": {"review_verdict": {"const": "RETURN_TO_WRITER"}}}, "then": {"required": ["return_reason"]}}
+        {"if": {"properties": {"review_verdict": {"const": "PASS"}}}, "then": {"required": ["final_text"], "properties": {"findings": {"not": {"contains": {"properties": {"action": {"const": "RETURN_TO_WRITER"}}}}}}}},
+        {"if": {"properties": {"review_verdict": {"const": "LOCAL_REPAIR"}}}, "then": {"required": ["final_text"], "properties": {"findings": {"contains": {"properties": {"action": {"const": "LOCAL_REPAIR"}}}}}}},
+        {"if": {"properties": {"review_verdict": {"const": "RETURN_TO_WRITER"}}}, "then": {"required": ["return_reason"], "properties": {"findings": {"contains": {"properties": {"action": {"const": "RETURN_TO_WRITER"}}}}}}}
       ],
       "additionalProperties": false
     },
     "ArtifactEnvelope": {
       "type": "object",
       "required": ["artifact_type", "artifact_schema_version", "canonical_json_sha256", "artifact"],
-      "properties": {"artifact_type": {"enum": ["WriterHandoff", "WriterInput", "DraftArtifact", "ReviewResult"]}, "artifact_schema_version": {"type": "string", "minLength": 1}, "canonical_json_sha256": {"$ref": "#/$defs/Digest"}, "artifact": {"type": "object"}},
+      "properties": {"artifact_type": {"enum": ["ResearchPackage", "WriterHandoff", "WriterInput", "DraftArtifact", "ReviewResult"]}, "artifact_schema_version": {"type": "string", "minLength": 1}, "canonical_json_sha256": {"$ref": "#/$defs/Digest"}, "artifact": {"type": "object"}},
       "oneOf": [
-        {"properties": {"artifact_type": {"const": "WriterHandoff"}, "artifact": {"$ref": "#/$defs/WriterHandoff"}}},
-        {"properties": {"artifact_type": {"const": "WriterInput"}, "artifact": {"$ref": "#/$defs/WriterInput"}}},
-        {"properties": {"artifact_type": {"const": "DraftArtifact"}, "artifact": {"$ref": "#/$defs/DraftArtifact"}}},
-        {"properties": {"artifact_type": {"const": "ReviewResult"}, "artifact": {"$ref": "#/$defs/ReviewResult"}}}
+        {"properties": {"artifact_type": {"const": "ResearchPackage"}, "artifact_schema_version": {"const": "research-package/0.1.2"}, "artifact": {"$ref": "#/$defs/ResearchPackage"}}},
+        {"properties": {"artifact_type": {"const": "WriterHandoff"}, "artifact_schema_version": {"const": "writer-handoff/0.1.2"}, "artifact": {"$ref": "#/$defs/WriterHandoff"}}},
+        {"properties": {"artifact_type": {"const": "WriterInput"}, "artifact_schema_version": {"const": "writer-input/0.1.2"}, "artifact": {"$ref": "#/$defs/WriterInput"}}},
+        {"properties": {"artifact_type": {"const": "DraftArtifact"}, "artifact_schema_version": {"const": "draft-artifact/0.1.2"}, "artifact": {"$ref": "#/$defs/DraftArtifact"}}},
+        {"properties": {"artifact_type": {"const": "ReviewResult"}, "artifact_schema_version": {"const": "review-result/0.1.2"}, "artifact": {"$ref": "#/$defs/ReviewResult"}}}
       ],
       "additionalProperties": false
     },
     "StageResult": {
       "type": "object",
       "required": ["stage", "stage_status"],
-      "properties": {"stage": {"$ref": "#/$defs/Stage"}, "stage_status": {"$ref": "#/$defs/StageStatus"}, "artifact_envelope": {"$ref": "#/$defs/ArtifactEnvelope"}, "error_code": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}},
+      "properties": {"stage": {"$ref": "#/$defs/Stage"}, "stage_status": {"$ref": "#/$defs/StageStatus"}, "artifact_envelope": {"$ref": "#/$defs/ArtifactEnvelope"}, "error_code": {"type": "string", "minLength": 1}, "reason": {"type": "string", "minLength": 1}, "diagnostic": {"type": ["object", "null"]}},
       "allOf": [
         {"if": {"properties": {"stage_status": {"const": "PASS"}}}, "then": {"required": ["artifact_envelope"]}},
-        {"if": {"properties": {"stage_status": {"enum": ["FAIL", "BLOCKED"]}}}, "then": {"required": ["error_code", "reason"]}},
+        {"if": {"properties": {"stage_status": {"enum": ["FAIL", "BLOCKED"]}}}, "then": {"required": ["error_code", "reason"], "not": {"required": ["artifact_envelope"]}}},
         {"if": {"properties": {"stage": {"const": "AUDITOR"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "WriterHandoff"}}}}}},
         {"if": {"properties": {"stage": {"const": "ADAPTER"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "WriterInput"}}}}}},
         {"if": {"properties": {"stage": {"const": "WRITER"}, "stage_status": {"const": "PASS"}}}, "then": {"properties": {"artifact_envelope": {"properties": {"artifact_type": {"const": "DraftArtifact"}}}}}},
@@ -146,6 +159,11 @@
       ],
       "additionalProperties": false
     },
+    "ResearchArtifactEnvelope": {"allOf": [{"$ref": "#/$defs/ArtifactEnvelope"}, {"properties": {"artifact_type": {"const": "ResearchPackage"}}}]},
+    "AuditorStageResult": {"allOf": [{"$ref": "#/$defs/StageResult"}, {"properties": {"stage": {"const": "AUDITOR"}}}]},
+    "AdapterStageResult": {"allOf": [{"$ref": "#/$defs/StageResult"}, {"properties": {"stage": {"const": "ADAPTER"}}}]},
+    "WriterStageResult": {"allOf": [{"$ref": "#/$defs/StageResult"}, {"properties": {"stage": {"const": "WRITER"}}}]},
+    "FinalReviewStageResult": {"allOf": [{"$ref": "#/$defs/StageResult"}, {"properties": {"stage": {"const": "FINAL_REVIEW"}}}]},
     "Registry": {
       "type": "object",
       "required": ["schema_version", "registry_version", "capability_ids"],
