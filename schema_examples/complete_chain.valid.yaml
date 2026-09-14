@@ -1,9 +1,9 @@
 research_artifact_envelope:
   artifact_type: ResearchPackage
-  artifact_schema_version: research-package/0.1.2
-  canonical_json_sha256: "sha256:36ce98dd2462f560877bc5254d8844061bffd88339ce38a8f81c3a13cb8bc2ad"
+  artifact_schema_version: research-package/0.1.3
+  canonical_json_sha256: "sha256:2531d5ca8aaad42a36bb8452a0d2c4e6d09eabfdca018898de94f9100d878354"
   artifact:
-    schema_version: research-package/0.1.2
+    schema_version: research-package/0.1.3
     topic: "合成示例：公共服务叫号界面的信息边界"
     sources: &sources
       - {id: S-01, title: "Synthetic observation", url: "https://example.invalid/synthetic/source-01", accessed_at: "2026-09-14", rights_status: SYNTHETIC}
@@ -24,11 +24,11 @@ auditor_result:
   stage_status: PASS
   artifact_envelope:
     artifact_type: WriterHandoff
-    artifact_schema_version: writer-handoff/0.1.2
-    canonical_json_sha256: "sha256:2d675288d4d789ddba05c452cfc121798b7aa0c75100ede4af121600c4b59efe"
+    artifact_schema_version: writer-handoff/0.1.3
+    canonical_json_sha256: "sha256:c69c74b9c2899ed839eb0e51067fb6eacaacb5af776f5b168cfe6d32a4635ea6"
     artifact: &handoff
-      schema_version: writer-handoff/0.1.2
-      input_artifact_digest: "sha256:36ce98dd2462f560877bc5254d8844061bffd88339ce38a8f81c3a13cb8bc2ad"
+      schema_version: writer-handoff/0.1.3
+      input_artifact_digest: "sha256:2531d5ca8aaad42a36bb8452a0d2c4e6d09eabfdca018898de94f9100d878354"
       evidence_authority: WRITER_HANDOFF_ONLY
       sources: *sources
       authorized_claims: [*c1, *c2, *c3]
@@ -39,16 +39,16 @@ adapter_result:
   stage_status: PASS
   artifact_envelope:
     artifact_type: WriterInput
-    artifact_schema_version: writer-input/0.1.2
-    canonical_json_sha256: "sha256:3fb0da45e3c2a278ea4d8a418b3119387c7b7002bd82be6fceabc4c8963fe6e0"
+    artifact_schema_version: writer-input/0.1.3
+    canonical_json_sha256: "sha256:fdf63d03e6f2c3397d062a0e533f6d609577d14deaaa1895f98628cc5d05fa37"
     artifact:
-      schema_version: writer-input/0.1.2
-      input_artifact_digest: "sha256:2d675288d4d789ddba05c452cfc121798b7aa0c75100ede4af121600c4b59efe"
+      schema_version: writer-input/0.1.3
+      input_artifact_digest: "sha256:c69c74b9c2899ed839eb0e51067fb6eacaacb5af776f5b168cfe6d32a4635ea6"
       evidence_handoff: *handoff
       author_intent:
-        {schema_version: author-intent/0.1.2, fact_authority: NONE, why_now: "讨论界面如何影响理解。", central_tension: "效率与可核对性。", core_position: "不夸大单一设计细节。", emotional_state: UNSET, distance_to_object: "观察者。", do_not_become: "不得写成群体心理故事。", ending_destination: "停在问题。"}
+        {schema_version: author-intent/0.1.3, fact_authority: NONE, why_now: "讨论界面如何影响理解。", central_tension: "效率与可核对性。", core_position: "不夸大单一设计细节。", emotional_state: UNSET, distance_to_object: "观察者。", do_not_become: "不得写成群体心理故事。", ending_destination: "停在问题。"}
       capability_plan:
-        schema_version: capability-plan/0.1.2
+        schema_version: capability-plan/0.1.3
         registry_version: 0.1.0
         fact_authority: NONE
         selected:
@@ -59,11 +59,11 @@ writer_result:
   stage_status: PASS
   artifact_envelope:
     artifact_type: DraftArtifact
-    artifact_schema_version: draft-artifact/0.1.2
-    canonical_json_sha256: "sha256:fddcf3569fa4ac738baaac2b7b700a4926c402e297ae2fdedc2a553e923fcf6d"
+    artifact_schema_version: draft-artifact/0.1.3
+    canonical_json_sha256: "sha256:d5c75f1ff123709f1f4341101c3f31a713b51c47ae3c0eadb8c840fd2b960783"
     artifact:
-      schema_version: draft-artifact/0.1.2
-      input_artifact_digest: "sha256:3fb0da45e3c2a278ea4d8a418b3119387c7b7002bd82be6fceabc4c8963fe6e0"
+      schema_version: draft-artifact/0.1.3
+      input_artifact_digest: "sha256:fdf63d03e6f2c3397d062a0e533f6d609577d14deaaa1895f98628cc5d05fa37"
       draft_markdown: "材料只记录了界面的显示与切换；它不足以证明设计必然带来什么后果。"
       generation_metadata: {provider: example-provider, model: example-model}
 
@@ -72,11 +72,11 @@ final_review_result:
   stage_status: PASS
   artifact_envelope:
     artifact_type: ReviewResult
-    artifact_schema_version: review-result/0.1.2
-    canonical_json_sha256: "sha256:1b33c0f2dffc1365737f61be9cef2edeab86454194f13f8bbcdddf73d523c20e"
+    artifact_schema_version: review-result/0.1.3
+    canonical_json_sha256: "sha256:7baa025d62fe1711d68bfc175deb81e19b4539783769f4ad094aaac22566ef27"
     artifact:
-      schema_version: review-result/0.1.2
-      reviewed_draft_digest: "sha256:fddcf3569fa4ac738baaac2b7b700a4926c402e297ae2fdedc2a553e923fcf6d"
+      schema_version: review-result/0.1.3
+      reviewed_draft_digest: "sha256:d5c75f1ff123709f1f4341101c3f31a713b51c47ae3c0eadb8c840fd2b960783"
       review_verdict: PASS
       findings: []
       final_text: "材料只记录了界面的显示与切换；它不足以证明设计必然带来什么后果。"
