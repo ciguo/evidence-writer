@@ -6,8 +6,7 @@ import unittest
 
 import yaml
 
-from evidence_writer.contracts import EvidenceWriterBundle
-from evidence_writer.policies import validate_bundle
+from evidence_writer.policies import validate_contract_data
 
 from test_contract_core import finding, load_fixture
 
@@ -16,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def codes(data: dict) -> set[str]:
-    return {item.code for item in validate_bundle(EvidenceWriterBundle.model_validate(data))}
+    return {item.code for item in validate_contract_data(data)}
 
 
 def mutate(case_id: str, data: dict) -> str:
