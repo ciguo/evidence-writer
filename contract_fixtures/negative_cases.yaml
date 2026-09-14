@@ -1,0 +1,21 @@
+suite: contract-final-hardening/0.1.3
+base_fixture: ../schema_examples/complete_chain.valid.yaml
+purpose: "Declarative negative Contract fixtures; no runtime implementation."
+cases:
+  - {id: V012-01-dangling-claim, mutation: "C-03.supporting_claim_ids=[C-404]", expect: DANGLING_CLAIM_REF}
+  - {id: V012-02-cyclic-claim, mutation: "C-01→C-02; C-02→C-01", expect: CLAIM_DEPENDENCY_CYCLE}
+  - {id: V012-03-capability-over-three, mutation: "selected capability count=4", expect: CAPABILITY_OVER_MAX}
+  - {id: V012-04-intent-fact-authority, mutation: "AuthorIntent.fact_authority=FACTS_ALLOWED", expect: INTENT_FACT_AUTHORITY}
+  - {id: V012-05-forbidden-authorized, mutation: "C-05 appended to authorized_claims", expect: FORBIDDEN_AUTHORIZED}
+  - {id: V012-06-fake-sha256, mutation: "Draft envelope digest=sha256:deadbeef", expect: DIGEST_INVALID}
+  - {id: V012-07-return-without-reason, mutation: "Review verdict=RETURN_TO_WRITER; remove return_reason", expect: RETURN_MISSING_REASON}
+  - {id: V013-01-top-level-stage-mismatch, mutation: "auditor_result.stage=WRITER", expect: TOP_LEVEL_STAGE_MISMATCH}
+  - {id: V013-02-unverified-fact-state, mutation: "C-01.verification_status=UNVERIFIED", expect: CLAIM_AUTHORIZATION_MATRIX}
+  - {id: V013-03-hypothesis-state, mutation: "C-03.allowed_use=[state]", expect: CLAIM_AUTHORIZATION_MATRIX}
+  - {id: V013-04-source-backed-no-source, mutation: "C-01.source_ids=[]", expect: CLAIM_AUTHORIZATION_MATRIX}
+  - {id: V013-05-derived-no-support, mutation: "C-03.supporting_claim_ids=[]", expect: CLAIM_AUTHORIZATION_MATRIX}
+  - {id: V013-06-forbidden-matrix-bypass, mutation: "C-05 in authorized_claims with state permission", expect: FORBIDDEN_AUTHORIZED}
+  - {id: V013-07-envelope-schema-version-mismatch, mutation: "envelope declares artifact_schema_version different from artifact.schema_version", expect: SCHEMA_VERSION_MISMATCH}
+  - {id: V013-08-pass-return-finding, mutation: "PASS ReviewResult contains RETURN_TO_WRITER finding", expect: REVIEW_VERDICT_CONFLICT}
+  - {id: V013-09-local-repair-no-text, mutation: "LOCAL_REPAIR finding has repaired_text=null", expect: LOCAL_REPAIR_TEXT_REQUIRED}
+  - {id: V013-10-review-wrong-draft-digest, mutation: "ReviewResult.reviewed_draft_digest does not equal Draft envelope digest", expect: PROVENANCE_DIGEST_MISMATCH}
