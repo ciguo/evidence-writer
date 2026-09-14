@@ -7,8 +7,7 @@ import unittest
 import yaml
 
 from evidence_writer.canonical import canonical_sha256
-from evidence_writer.contracts import EvidenceWriterBundle
-from evidence_writer.policies import validate_bundle
+from evidence_writer.policies import validate_contract_data
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -19,8 +18,7 @@ def load_fixture() -> dict:
 
 
 def violations(data: dict) -> set[str]:
-    bundle = EvidenceWriterBundle.model_validate(data)
-    return {item.code for item in validate_bundle(bundle)}
+    return {item.code for item in validate_contract_data(data)}
 
 
 def finding(action: str) -> dict:
