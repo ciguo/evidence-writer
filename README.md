@@ -26,8 +26,14 @@ python -m unittest discover -s tests -v
 ```
 
 The suite validates the valid contract chain, the 17 declared negative fixtures,
-empty boundary fallback, digest/provenance integrity, and failure-stage
-fail-closed behavior.
+empty boundary fallback, digest/provenance integrity, embedded WriterHandoff
+identity, independent validation of every PASS artifact, schema/model parity,
+and failure-stage fail-closed behavior.
+
+Raw JSON/YAML data must enter through `validate_contract_data` (or the raising
+`ensure_contract_data_valid` helper). The ingress first applies the strict
+v0.1.3 Pydantic Contract models and only then runs deterministic policy checks;
+callers must not bypass this boundary by constructing unchecked objects.
 
 ## Boundaries
 
