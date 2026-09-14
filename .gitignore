@@ -1,0 +1,8 @@
+.env
+.env.*
+output/
+private_holdout/
+private_data/
+tmp/
+cache/
+local_exports/
