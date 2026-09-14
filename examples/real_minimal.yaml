@@ -1,0 +1,79 @@
+run_id: first-real-article
+output_dir: ../output
+
+research_package:
+  schema_version: research-package/0.1.3
+  topic: "公共服务叫号界面的信息边界"
+  sources:
+    - id: S-01
+      title: "受控观察记录"
+      url: "https://example.invalid/controlled-observation"
+      accessed_at: "2026-09-14"
+      rights_status: SYNTHETIC
+  claims:
+    - id: C-01
+      claim_type: FACT
+      text: "观察中的界面每次显示一个号码。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "仅限本次受控观察"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-02
+      claim_type: SIGNAL
+      text: "观察记录显示，界面上的号码会切换。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "仅限本次受控观察"
+      allowed_use: [state, qualify]
+      verification_status: VERIFIED
+    - id: C-03
+      claim_type: HYPOTHESIS
+      text: "信息呈现方式可能影响核对体验。"
+      source_ids: []
+      supporting_claim_ids: [C-01, C-02]
+      origin: DERIVED
+      evidence_level: CONTEXTUAL
+      scope: "待验证的讨论方向，不是因果结论"
+      allowed_use: [qualify]
+      verification_status: PARTIAL
+    - id: C-04
+      claim_type: LIMIT
+      text: "材料未记录具体使用者的心理、动作或结果。"
+      source_ids: [S-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: PRIMARY
+      scope: "全文"
+      allowed_use: [limit]
+      verification_status: VERIFIED
+    - id: C-05
+      claim_type: FORBIDDEN
+      text: "不得虚构使用者或工作人员的动作、感受、动机或因果关系。"
+      source_ids: []
+      supporting_claim_ids: [C-04]
+      origin: DERIVED
+      evidence_level: NONE
+      scope: "全文"
+      allowed_use: [forbid]
+      verification_status: FORBIDDEN
+
+author_intent:
+  schema_version: author-intent/0.1.3
+  fact_authority: NONE
+  why_now: "讨论微小界面信息如何限定我们能够可靠表达的内容。"
+  central_tension: "表达价值与证据边界之间的张力。"
+  core_position: "从有限观察出发，不把可能性写成结论。"
+  emotional_state: "克制而好奇"
+  distance_to_object: "观察者"
+  do_not_become: "不得写成用户心理故事或设计效果证明。"
+  ending_destination: "以可继续验证的问题收束。"
+
+capability_registry_snapshot:
+  schema_version: capability-registry/0.1
+  registry_version: 0.1.0
+  capability_ids: [explanation-density-control]
