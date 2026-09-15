@@ -7,10 +7,12 @@ from .base import (
     normalize_provider_error,
 )
 from .fake import FakeProvider
+from .openai_responses import OpenAIResponsesProvider
 
 __all__ = [
     "FakeProvider",
     "LLMProvider",
+    "OpenAIResponsesProvider",
     "ProviderError",
     "ProviderResponse",
     "normalize_provider_error",

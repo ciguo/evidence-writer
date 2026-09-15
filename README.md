@@ -7,9 +7,11 @@ Evidence Writer is an evidence-bounded nonfiction writing pipeline. Version
 - a thin, injected-handler Pipeline Runner with verified filesystem storage;
 - a vendor-neutral provider protocol and an offline deterministic FakeProvider.
 
-There is still no real Auditor, Adapter, Writer, or Final Review LLM logic.
-There are no prompts, research runtime, capability selection, Reference Library
-runtime, UI, database, RAG, CI/CD, or Production integration.
+The authorized v0.1.0 LLM stage layer implements Auditor, Adapter, Writer, and
+Final Review over an OpenAI-compatible Responses API. The frozen Contract Core,
+Runner, serialization, authorization matrix, and Production boundary are
+unchanged. There is no research search, topic selection, RAG, database, Web UI,
+multi-agent runtime, Gold Corpus, or Author Model.
 
 ## Requirements
 
@@ -57,6 +59,26 @@ and artifact paths. It writes:
 The run command uses only configured synthetic StageResults. It performs no
 network call and contains no real writing behavior.
 
+## Real minimal run
+
+Set the four required environment variables (their values are never printed):
+
+    EVIDENCE_WRITER_LLM_API_KEY
+    EVIDENCE_WRITER_LLM_BASE_URL
+    EVIDENCE_WRITER_LLM_MODEL
+    EVIDENCE_WRITER_LLM_TIMEOUT_SECONDS
+
+Then run:
+
+    evidence-writer run-llm examples/real_minimal.yaml
+
+This first performs a minimal provider connectivity request. Only after it
+succeeds does the real Auditor → Adapter → Writer → Final Review pipeline run.
+The Writer request contains only the frozen `WriterInput`; Final Review receives
+that evidence boundary and the Draft and can only PASS, LOCAL_REPAIR, or
+RETURN_TO_WRITER. A successful run writes the same five verified artifacts as
+the synthetic runner, including `output/first-real-article/final.md`.
+
 ## Runner stop semantics
 
 Only a fully validated PASS artifact can reach the next injected handler. FAIL,
@@ -72,4 +94,5 @@ BLOCKED StageResults for every remaining stage.
 - Author Intent and Capability have no fact authority.
 - Reference Library is not a runtime dependency.
 - Modern copyrighted material defaults to link-only/no-quote.
-- The next phase remains blocked until `LLM_STAGE_IMPLEMENTATION AUTHORIZED`.
+- Provider runtime configuration is read only from the four documented
+  `EVIDENCE_WRITER_LLM_*` environment variables.
