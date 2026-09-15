@@ -23,6 +23,7 @@ from .contracts import (
     WriterInput,
 )
 from .providers import LLMProvider
+from .review_acceptance import validate_review_acceptance
 from .serialization import to_contract_json
 
 
@@ -204,6 +205,26 @@ class WriterHandler:
         return _pass(Stage.WRITER, _envelope(ArtifactType.DRAFT, draft))
 
 
+def _normalize_review_output(structured: Any) -> dict[str, Any]:
+    if not isinstance(structured, dict):
+        raise ValueError("final review output must be an object")
+    data = dict(structured)
+    findings = data.get("findings")
+    if not isinstance(findings, list) or any(
+        not isinstance(item, dict) for item in findings
+    ):
+        raise ValueError("final review findings must be objects")
+    data["findings"] = [dict(item) for item in findings]
+    for item in data["findings"]:
+        if not item.get("repaired_text"):
+            item.pop("repaired_text", None)
+    if not data.get("final_text"):
+        data.pop("final_text", None)
+    if not data.get("return_reason"):
+        data.pop("return_reason", None)
+    return data
+
+
 class FinalReviewHandler:
     def __init__(self, provider: LLMProvider, model: str, context: RunContext) -> None:
         self.provider, self.model, self.context = provider, model, context
@@ -236,19 +257,16 @@ class FinalReviewHandler:
         response = _prompt(
             self.provider,
             self.model,
-            "Review the draft only against its WriterInput evidence. You may PASS, make strictly local repairs, or RETURN_TO_WRITER. Never introduce evidence. For PASS use unchanged draft as final_text. Empty strings mean an absent optional field; every LOCAL_REPAIR finding needs repaired_text and every RETURN_TO_WRITER needs a reason.",
+            "Review the draft only against its WriterInput evidence. Never introduce evidence. PASS requires no findings and final_text exactly equal to the draft. LOCAL_REPAIR is deletion-only: repaired_text must be a non-empty exact substring of original_text, and final_text must equal the draft after applying every declared repair at its exact line location. If repair needs any new word or broader rewriting, RETURN_TO_WRITER. For RETURN_TO_WRITER use empty final_text and provide a matching finding and reason. Empty strings mean an absent optional field.",
             {"writer_input": self.context.writer_input, "draft": draft},
             schema,
         )
-        data = dict(response.structured)
-        findings = data["findings"]
-        for item in findings:
-            if not item.get("repaired_text"):
-                item.pop("repaired_text", None)
-        if not data.get("final_text"):
-            data.pop("final_text", None)
-        if not data.get("return_reason"):
-            data.pop("return_reason", None)
+        data = _normalize_review_output(response.structured)
         data.update(schema_version="review-result/0.1.3", reviewed_draft_digest=input_artifact.canonical_json_sha256)
         review = ReviewResult.model_validate(data)
+        violations = validate_review_acceptance(draft, review)
+        if violations:
+            raise ValueError(
+                "; ".join(f"{item.code}: {item.message}" for item in violations)
+            )
         return _pass(Stage.FINAL_REVIEW, _envelope(ArtifactType.REVIEW, review))

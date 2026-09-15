@@ -11,13 +11,16 @@ from .contracts import (
     ArtifactEnvelope,
     ArtifactType,
     CapabilityRegistrySnapshot,
+    DraftArtifact,
     ReviewResult,
+    ReviewVerdict,
     Stage,
     StageResult,
     StageStatus,
 )
 from .policies import PolicyViolation, validate_contract_data
 from .providers.base import ProviderError
+from .review_acceptance import validate_review_acceptance
 from .serialization import to_contract_json
 from .storage import FilesystemStorage, StorageError
 
@@ -145,6 +148,7 @@ class PipelineRunner:
         terminal_code: str | None = None
 
         for stage in _STAGE_ORDER:
+            final_review: ReviewResult | None = None
             if terminal_status is not None:
                 result = _blocked(stage, terminal_status.value)
                 results[stage] = result
@@ -184,6 +188,15 @@ class PipelineRunner:
                 violations = validate_contract_data(
                     _bundle_data(research, registry, candidate)
                 )
+                if stage is Stage.FINAL_REVIEW:
+                    assert result.artifact_envelope is not None
+                    final_review = ReviewResult.model_validate(
+                        result.artifact_envelope.artifact
+                    )
+                    draft = DraftArtifact.model_validate(current_input.artifact)
+                    violations.extend(
+                        validate_review_acceptance(draft, final_review)
+                    )
                 if violations:
                     result = _failed(
                         stage,
@@ -200,12 +213,14 @@ class PipelineRunner:
                         )
                         paths[_FILENAMES[stage]] = str(stored.path)
                         if stage is Stage.FINAL_REVIEW:
-                            review = ReviewResult.model_validate(
-                                result.artifact_envelope.artifact
-                            )
-                            if review.final_text is not None:
+                            assert final_review is not None
+                            if (
+                                final_review.review_verdict
+                                in {ReviewVerdict.PASS, ReviewVerdict.LOCAL_REPAIR}
+                                and final_review.final_text is not None
+                            ):
                                 final_path = self.storage.write_final(
-                                    "final.md", review.final_text
+                                    "final.md", final_review.final_text
                                 )
                                 paths["final.md"] = str(final_path)
                     except (StorageError, ValidationError, ValueError):
@@ -219,6 +234,14 @@ class PipelineRunner:
             if result.stage_status is StageStatus.PASS:
                 assert result.artifact_envelope is not None
                 current_input = result.artifact_envelope
+                if (
+                    stage is Stage.FINAL_REVIEW
+                    and final_review is not None
+                    and final_review.review_verdict is ReviewVerdict.RETURN_TO_WRITER
+                ):
+                    terminal_status = StageStatus.BLOCKED
+                    terminal_stage = stage
+                    terminal_code = "FINAL_REVIEW_RETURN_TO_WRITER"
             else:
                 terminal_status = result.stage_status
                 terminal_stage = stage
