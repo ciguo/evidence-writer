@@ -196,6 +196,65 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(result.error_code, "PROVIDER_UNAVAILABLE")
             self.assertEqual(handlers[Stage.ADAPTER].calls, 0)
 
+    def test_return_to_writer_blocks_completion_and_writes_no_final(self) -> None:
+        bundle = load_bundle()
+        review_envelope = bundle["final_review_result"]["artifact_envelope"]
+        review_envelope["artifact"] = {
+            "schema_version": "review-result/0.1.3",
+            "reviewed_draft_digest": bundle["writer_result"]["artifact_envelope"][
+                "canonical_json_sha256"
+            ],
+            "review_verdict": "RETURN_TO_WRITER",
+            "findings": [
+                {
+                    "finding_type": "EXTERNAL_FACT",
+                    "location": {"start_line": 1, "end_line": 1},
+                    "original_text": "材料只记录了界面的显示与切换",
+                    "evidence_claim_ids": [],
+                    "action": "RETURN_TO_WRITER",
+                    "reason": "需要 Writer 重新生成，不能局部删除解决。",
+                }
+            ],
+            "return_reason": "发现无法局部修复的经验性断言。",
+        }
+        review_envelope["canonical_json_sha256"] = canonical_sha256(
+            review_envelope["artifact"]
+        )
+        handlers = handlers_for(bundle)
+        temporary, result = run_pipeline(bundle, handlers)
+        with temporary:
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.stage, "FINAL_REVIEW")
+            self.assertEqual(result.error_code, "FINAL_REVIEW_RETURN_TO_WRITER")
+            self.assertIs(
+                result.stage_results[Stage.FINAL_REVIEW].stage_status,
+                StageStatus.PASS,
+            )
+            self.assertIn("04_review.json", result.artifact_paths)
+            self.assertNotIn("final.md", result.artifact_paths)
+
+    def test_final_review_pass_rewrite_is_rejected_by_runner(self) -> None:
+        bundle = load_bundle()
+        review_envelope = bundle["final_review_result"]["artifact_envelope"]
+        review_envelope["artifact"]["final_text"] += " 新增的外部事实。"
+        review_envelope["canonical_json_sha256"] = canonical_sha256(
+            review_envelope["artifact"]
+        )
+        handlers = handlers_for(bundle)
+        temporary, result = run_pipeline(bundle, handlers)
+        with temporary:
+            self.assertEqual(result.status, "FAIL")
+            self.assertEqual(result.stage, "FINAL_REVIEW")
+            self.assertEqual(result.error_code, "CONTRACT_POLICY_VIOLATION")
+            self.assertNotIn("final.md", result.artifact_paths)
+            codes = {
+                item["code"]
+                for item in result.stage_results[Stage.FINAL_REVIEW].diagnostic[
+                    "violations"
+                ]
+            }
+            self.assertIn("PASS_TEXT_CHANGED", codes)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,6 +9,7 @@ import sys
 from typing import Sequence
 
 import yaml
+from pydantic import ValidationError
 
 from .canonical import canonical_sha256
 from .contracts import ArtifactEnvelope, AuthorIntent, CapabilityRegistrySnapshot, ResearchPackage, Stage, StageResult
@@ -16,7 +17,7 @@ from .llm_stages import AdapterHandler, AuditorHandler, FinalReviewHandler, RunC
 from .pipeline import PipelineRunner, StageHandler
 from .policies import validate_contract_data
 from .storage import FilesystemStorage
-from .providers import OpenAIResponsesProvider
+from .providers import OpenAIResponsesProvider, ProviderError
 
 
 class SyntheticStageHandler:
@@ -148,8 +149,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "run":
             return _run(args.input)
         return _run_llm(args.input)
-    except Exception:
+    except ProviderError as error:
+        _print_result("FAIL", "PROVIDER", error.code, {})
+        return 1
+    except (
+        KeyError,
+        OSError,
+        TypeError,
+        UnicodeError,
+        ValidationError,
+        ValueError,
+        yaml.YAMLError,
+    ):
         _print_result("FAIL", "INPUT", "CLI_INPUT_INVALID", {})
+        return 1
+    except Exception:
+        _print_result("FAIL", "CLI", "CLI_INTERNAL_ERROR", {})
         return 1
 
 

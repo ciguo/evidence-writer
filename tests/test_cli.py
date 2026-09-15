@@ -5,10 +5,12 @@ from io import StringIO
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import yaml
 
 from evidence_writer.cli import main
+from evidence_writer.providers import ProviderError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +51,25 @@ class CliTests(unittest.TestCase):
             self.assertIn("stage=FINAL_REVIEW", rendered)
             self.assertIn("01_writer_handoff.json", rendered)
             self.assertTrue((Path(directory) / "run-01" / "final.md").is_file())
+
+    def test_provider_failure_keeps_provider_error_code(self) -> None:
+        provider_error = ProviderError(
+            "PROVIDER_UNAVAILABLE",
+            "sensitive vendor detail must not be printed",
+            provider="test",
+        )
+        output = StringIO()
+        with patch(
+            "evidence_writer.cli.OpenAIResponsesProvider",
+            side_effect=provider_error,
+        ), redirect_stdout(output):
+            code = main(["run-llm", str(ROOT / "examples" / "real_minimal.yaml")])
+        rendered = output.getvalue()
+        self.assertEqual(code, 1)
+        self.assertIn("status=FAIL", rendered)
+        self.assertIn("stage=PROVIDER", rendered)
+        self.assertIn("error_code=PROVIDER_UNAVAILABLE", rendered)
+        self.assertNotIn("sensitive vendor detail", rendered)
 
 
 if __name__ == "__main__":
