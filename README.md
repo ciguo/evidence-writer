@@ -99,8 +99,9 @@ BLOCKED StageResults for every remaining stage.
 
 ## Public-source flu-prevention example
 
-`examples/flu_prevention.yaml` is a complete, offline Contract fixture. Validate
-its deterministic policy ingress without invoking a model:
+`examples/flu_prevention.yaml` is an offline `run-llm` input containing only a
+ResearchPackage, AuthorIntent, and CapabilityRegistrySnapshot. Check its input
+boundary without invoking a model:
 
     PYTHONPATH=src python -m unittest tests.test_examples -v
 

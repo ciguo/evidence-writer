@@ -1,83 +1,85 @@
-research_artifact_envelope:
-  artifact_type: ResearchPackage
-  artifact_schema_version: research-package/0.1.3
-  canonical_json_sha256: sha256:7c12daa0ec60f3aacbff0a830c22123de8573d3392b5681cb57baf35a2892344
-  artifact:
-    schema_version: research-package/0.1.3
-    topic: 流感预防公共来源示例
-    sources:
-    - &id001
-      id: S-01
-      title: 流感预防二手科普材料
-      url: https://example.org/flu-prevention
-      accessed_at: '2026-09-15'
-      rights_status: LINK_ONLY
-    claims:
-    - &id002
-      id: C-01
-      claim_type: FACT
-      text: 住院重症患者
-      source_ids:
-      - S-01
-      supporting_claim_ids: []
-      origin: SOURCE_BACKED
-      evidence_level: SECONDARY
-      scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-      allowed_use:
-      - state
-      verification_status: VERIFIED
-    - &id003
-      id: C-02
-      claim_type: FACT
-      text: 养老机构、长期护理机构、福利院等聚集场所的居住人员及工作人员
-      source_ids:
-      - S-01
-      supporting_claim_ids: []
-      origin: SOURCE_BACKED
-      evidence_level: SECONDARY
-      scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-      allowed_use:
-      - state
-      verification_status: VERIFIED
-    - &id004
-      id: C-03
-      claim_type: FACT
-      text: 接种后2至4周产生具有保护水平的抗体
-      source_ids:
-      - S-01
-      supporting_claim_ids: []
-      origin: SOURCE_BACKED
-      evidence_level: SECONDARY
-      scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-      allowed_use:
-      - state
-      verification_status: VERIFIED
-    - &id005
-      id: C-04
-      claim_type: LIMIT
-      text: 该材料属于单一 LINK_ONLY 二手科普来源，无法独立核实 2026—2027 流感季疫苗供应及国家免费接种政策。
-      source_ids:
-      - S-01
-      supporting_claim_ids: []
-      origin: SOURCE_BACKED
-      evidence_level: SECONDARY
-      scope: 全文
-      allowed_use:
-      - limit
-      verification_status: VERIFIED
-    - &id006
-      id: C-05
-      claim_type: FORBIDDEN
-      text: 基于 C-04 的证据限制，不得把 2026—2027 流感季疫苗供应及国家免费接种政策写成已经核实的事实或现行国家政策。
-      source_ids: []
-      supporting_claim_ids:
-      - C-04
-      origin: DERIVED
-      evidence_level: NONE
-      scope: 全文
-      allowed_use:
-      - forbid
-      verification_status: FORBIDDEN
+run_id: flu-prevention-public-source
+output_dir: ../output
+research_package:
+  schema_version: research-package/0.1.3
+  topic: 流感预防公共来源示例
+  sources:
+  - id: S-01
+    title: 流感预防科普热点材料
+    url: https://service.cpma.org.cn/sci/#/hotspotDetail?articleId=9da18f4270cc4ca98a731c871288d535&code=topic
+    accessed_at: '2026-09-15'
+    rights_status: LINK_ONLY
+  claims:
+  - id: C-01
+    claim_type: FACT
+    text: 一般情况下排毒期平均约5天；低龄儿童、住院重症患者和免疫功能低下者的排毒时间通常更长，婴幼儿可延长至1至3周。
+    source_ids:
+    - S-01
+    supporting_claim_ids: []
+    origin: SOURCE_BACKED
+    evidence_level: SECONDARY
+    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    allowed_use:
+    - state
+    verification_status: VERIFIED
+  - id: C-02
+    claim_type: FACT
+    text: 文中优先推荐的重点和高风险人群包括养老机构、长期护理机构、福利院等聚集场所的居住人员及工作人员；该项内容仅限2025—2026流感季指南范围。
+    source_ids:
+    - S-01
+    supporting_claim_ids: []
+    origin: SOURCE_BACKED
+    evidence_level: SECONDARY
+    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    allowed_use:
+    - state
+    verification_status: VERIFIED
+  - id: C-03
+    claim_type: FACT
+    text: 流感疫苗通常需要在接种后2至4周才能产生具有保护水平的抗体。
+    source_ids:
+    - S-01
+    supporting_claim_ids: []
+    origin: SOURCE_BACKED
+    evidence_level: SECONDARY
+    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    allowed_use:
+    - state
+    verification_status: VERIFIED
+  - id: C-04
+    claim_type: LIMIT
+    text: 该材料属于单一 LINK_ONLY 二手科普来源，无法独立核实 2026—2027 流感季疫苗供应及国家免费接种政策。
+    source_ids:
+    - S-01
+    supporting_claim_ids: []
+    origin: SOURCE_BACKED
+    evidence_level: SECONDARY
+    scope: 全文
+    allowed_use:
+    - limit
+    verification_status: VERIFIED
+  - id: C-05
+    claim_type: FORBIDDEN
+    text: 基于 C-04 的证据限制，不得把 2026—2027 流感季疫苗供应及国家免费接种政策写成已经核实的事实或现行国家政策。
+    source_ids: []
+    supporting_claim_ids:
+    - C-04
+    origin: DERIVED
+    evidence_level: NONE
+    scope: 全文
+    allowed_use:
+    - forbid
+    verification_status: FORBIDDEN
+author_intent:
+  schema_version: author-intent/0.1.3
+  fact_authority: NONE
+  why_now: 展示公共来源材料的证据边界。
+  central_tension: 科普表达不能越过来源权限与时效范围。
+  core_position: 仅使用已授权事实，并明确保留限制。
+  emotional_state: 克制
+  distance_to_object: 科普材料整理者
+  do_not_become: 不得把未核实信息写成事实或现行政策。
+  ending_destination: 停在证据边界。
 capability_registry_snapshot:
   schema_version: capability-registry/0.1
   registry_version: 0.1.0
@@ -90,162 +92,3 @@ capability_registry_snapshot:
   - CAP-KNOWLEDGE-AS-PROCESS
   - CAP-BOUNDED-AUTHOR-POSITION
   - CAP-FACTS-ON-ACTION-LINE
-auditor_result:
-  stage: AUDITOR
-  stage_status: PASS
-  artifact_envelope:
-    artifact_type: WriterHandoff
-    artifact_schema_version: writer-handoff/0.1.3
-    canonical_json_sha256: sha256:0f2c0b3a9e0aa0846cc632f5df720c84b8558e946ada11b0e2360db8846ee24c
-    artifact:
-      schema_version: writer-handoff/0.1.3
-      input_artifact_digest: sha256:7c12daa0ec60f3aacbff0a830c22123de8573d3392b5681cb57baf35a2892344
-      evidence_authority: WRITER_HANDOFF_ONLY
-      sources:
-      - *id001
-      authorized_claims:
-      - *id002
-      - *id003
-      - *id004
-      boundary_claims:
-      - *id005
-      - *id006
-adapter_result:
-  stage: ADAPTER
-  stage_status: PASS
-  artifact_envelope:
-    artifact_type: WriterInput
-    artifact_schema_version: writer-input/0.1.3
-    canonical_json_sha256: sha256:f0975d53be835179e76d9135b96afd08561af2c21f71218c9a7d39161b368ebf
-    artifact:
-      schema_version: writer-input/0.1.3
-      input_artifact_digest: sha256:0f2c0b3a9e0aa0846cc632f5df720c84b8558e946ada11b0e2360db8846ee24c
-      evidence_handoff:
-        schema_version: writer-handoff/0.1.3
-        input_artifact_digest: sha256:7c12daa0ec60f3aacbff0a830c22123de8573d3392b5681cb57baf35a2892344
-        evidence_authority: WRITER_HANDOFF_ONLY
-        sources:
-        - id: S-01
-          title: 流感预防二手科普材料
-          url: https://example.org/flu-prevention
-          accessed_at: '2026-09-15'
-          rights_status: LINK_ONLY
-        authorized_claims:
-        - id: C-01
-          claim_type: FACT
-          text: 住院重症患者
-          source_ids:
-          - S-01
-          supporting_claim_ids: []
-          origin: SOURCE_BACKED
-          evidence_level: SECONDARY
-          scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-          allowed_use:
-          - state
-          verification_status: VERIFIED
-        - id: C-02
-          claim_type: FACT
-          text: 养老机构、长期护理机构、福利院等聚集场所的居住人员及工作人员
-          source_ids:
-          - S-01
-          supporting_claim_ids: []
-          origin: SOURCE_BACKED
-          evidence_level: SECONDARY
-          scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-          allowed_use:
-          - state
-          verification_status: VERIFIED
-        - id: C-03
-          claim_type: FACT
-          text: 接种后2至4周产生具有保护水平的抗体
-          source_ids:
-          - S-01
-          supporting_claim_ids: []
-          origin: SOURCE_BACKED
-          evidence_level: SECONDARY
-          scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
-          allowed_use:
-          - state
-          verification_status: VERIFIED
-        boundary_claims:
-        - id: C-04
-          claim_type: LIMIT
-          text: 该材料属于单一 LINK_ONLY 二手科普来源，无法独立核实 2026—2027 流感季疫苗供应及国家免费接种政策。
-          source_ids:
-          - S-01
-          supporting_claim_ids: []
-          origin: SOURCE_BACKED
-          evidence_level: SECONDARY
-          scope: 全文
-          allowed_use:
-          - limit
-          verification_status: VERIFIED
-        - id: C-05
-          claim_type: FORBIDDEN
-          text: 基于 C-04 的证据限制，不得把 2026—2027 流感季疫苗供应及国家免费接种政策写成已经核实的事实或现行国家政策。
-          source_ids: []
-          supporting_claim_ids:
-          - C-04
-          origin: DERIVED
-          evidence_level: NONE
-          scope: 全文
-          allowed_use:
-          - forbid
-          verification_status: FORBIDDEN
-      author_intent:
-        schema_version: author-intent/0.1.3
-        fact_authority: NONE
-        why_now: 展示公共来源材料的证据边界。
-        central_tension: 科普表达不能越过来源权限与时效范围。
-        core_position: 仅使用已授权事实，并明确保留限制。
-        emotional_state: 克制
-        distance_to_object: 科普材料整理者
-        do_not_become: 不得把未核实信息写成事实或现行政策。
-        ending_destination: 停在证据边界。
-      capability_plan:
-        schema_version: capability-plan/0.1.3
-        registry_version: 0.1.0
-        fact_authority: NONE
-        selected:
-        - capability_id: CAP-KNOWLEDGE-AS-PROCESS
-          objective: professional knowledge without textbook/terminology display.
-          execution_directive: enter terms/explanation from authorized phenomenon/process/problem,
-            preserving accuracy; knowledge serves current problem.
-          skip_if: definition must precede; no process material.
-          success_check: object understood before term; no unauthorized “accessible”
-            analogy facts.
-        - capability_id: CAP-REDUCE-EXPLANATION
-          objective: 减少“事实后再解释一遍”的 AI 逻辑水印。
-          execution_directive: when authorized material already carries judgment,
-            do not add same-meaning explanation; preserve necessary logic, don’t close
-            every paragraph.
-          skip_if: medical/policy/professional explanation if omission causes substantive
-            misunderstanding.
-          success_check: information intact, logic intact, author judgment still visible.
-writer_result:
-  stage: WRITER
-  stage_status: PASS
-  artifact_envelope:
-    artifact_type: DraftArtifact
-    artifact_schema_version: draft-artifact/0.1.3
-    canonical_json_sha256: sha256:e3919f717e1b21e605d901b6e12b097b1158e5fb2490a75232cde6b285e10579
-    artifact:
-      schema_version: draft-artifact/0.1.3
-      input_artifact_digest: sha256:f0975d53be835179e76d9135b96afd08561af2c21f71218c9a7d39161b368ebf
-      draft_markdown: 本示例仅保留材料中属于2025—2026流感季的三条信息，并明确单一二手来源不能独立核实2026—2027流感季疫苗供应及国家免费接种政策。
-      generation_metadata:
-        provider: offline-example
-        model: none
-final_review_result:
-  stage: FINAL_REVIEW
-  stage_status: PASS
-  artifact_envelope:
-    artifact_type: ReviewResult
-    artifact_schema_version: review-result/0.1.3
-    canonical_json_sha256: sha256:773465d34d8cb74147c22c08752492e55ad8b025bd1da3e732e79af8bf37a2c8
-    artifact:
-      schema_version: review-result/0.1.3
-      reviewed_draft_digest: sha256:e3919f717e1b21e605d901b6e12b097b1158e5fb2490a75232cde6b285e10579
-      review_verdict: PASS
-      findings: []
-      final_text: 本示例仅保留材料中属于2025—2026流感季的三条信息，并明确单一二手来源不能独立核实2026—2027流感季疫苗供应及国家免费接种政策。
