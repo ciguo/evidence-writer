@@ -76,4 +76,12 @@ author_intent:
 capability_registry_snapshot:
   schema_version: capability-registry/0.1
   registry_version: 0.1.0
-  capability_ids: [explanation-density-control]
+  capability_ids:
+    - CAP-JUDGMENT-ON-MATERIAL
+    - CAP-REDUCE-EXPLANATION
+    - CAP-EMOTION-DELAYED-NAMING
+    - CAP-OPEN-QUESTION
+    - CAP-QUIET-ENDING
+    - CAP-KNOWLEDGE-AS-PROCESS
+    - CAP-BOUNDED-AUTHOR-POSITION
+    - CAP-FACTS-ON-ACTION-LINE

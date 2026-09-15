@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import json
 from typing import Any
 
+from .capabilities import CAPABILITY_REGISTRY, CAPABILITY_REGISTRY_VERSION
 from .canonical import canonical_sha256
 from .contracts import (
     ArtifactEnvelope,
@@ -111,25 +112,63 @@ class AdapterHandler:
 
     def run(self, input_artifact: ArtifactEnvelope) -> StageResult:
         handoff = WriterHandoff.model_validate(input_artifact.artifact)
-        selection = _object(
-            {key: {"type": "string"} for key in ("capability_id", "objective", "execution_directive", "skip_if", "success_check")},
-            ["capability_id", "objective", "execution_directive", "skip_if", "success_check"],
+        runtime_ids = set(CAPABILITY_REGISTRY)
+        snapshot_ids = set(self.registry.capability_ids)
+        if self.registry.registry_version != CAPABILITY_REGISTRY_VERSION or not snapshot_ids <= runtime_ids:
+            raise ValueError("capability snapshot is not supported by the runtime registry")
+        allowed_ids = [item for item in self.registry.capability_ids if item in runtime_ids]
+        schema = _object(
+            {
+                "selected_capability_ids": {
+                    "type": "array",
+                    "items": {"type": "string", "enum": allowed_ids},
+                    "maxItems": 3,
+                    "uniqueItems": True,
+                }
+            },
+            ["selected_capability_ids"],
         )
-        schema = _object({"selected": {"type": "array", "items": selection, "maxItems": 3}}, ["selected"])
         response = _prompt(
             self.provider,
             self.model,
-            "Adapt the supplied handoff and author intent into at most three writing capabilities. Select only IDs in capability_ids. Intent has no fact authority; do not add evidence.",
-            {"writer_handoff": handoff, "author_intent": self.intent, "capability_ids": self.registry.capability_ids},
+            "Select zero to three capability IDs (one or two by default) from capability_ids. Return IDs only. Do not force a selection. Priority is Evidence Boundary, then Author Intent, then Capability. Respect each capability's trigger and skip_if. Capabilities have no fact authority.",
+            {
+                "writer_handoff": handoff,
+                "author_intent": self.intent,
+                "capabilities": [asdict(CAPABILITY_REGISTRY[item]) for item in allowed_ids],
+                "capability_ids": allowed_ids,
+            },
             schema,
         )
-        if any(item["capability_id"] not in self.registry.capability_ids for item in response.structured["selected"]):
-            raise ValueError("adapter selected an unregistered capability")
+        result = response.structured
+        if not isinstance(result, dict) or set(result) != {"selected_capability_ids"}:
+            raise ValueError("adapter output must contain selected_capability_ids only")
+        selected_ids = result["selected_capability_ids"]
+        if (
+            not isinstance(selected_ids, list)
+            or any(not isinstance(item, str) for item in selected_ids)
+            or len(selected_ids) > 3
+            or len(set(selected_ids)) != len(selected_ids)
+            or any(item not in snapshot_ids or item not in runtime_ids for item in selected_ids)
+        ):
+            raise ValueError("adapter returned an invalid capability selection")
+        selected = []
+        for capability_id in selected_ids:
+            definition = CAPABILITY_REGISTRY[capability_id]
+            selected.append(
+                {
+                    "capability_id": definition.capability_id,
+                    "objective": definition.objective,
+                    "execution_directive": definition.execution_directive,
+                    "skip_if": definition.skip_if,
+                    "success_check": definition.success_check,
+                }
+            )
         plan = CapabilityPlan(
             schema_version="capability-plan/0.1.3",
-            registry_version=self.registry.registry_version,
+            registry_version=CAPABILITY_REGISTRY_VERSION,
             fact_authority="NONE",
-            selected=response.structured["selected"],
+            selected=selected,
         )
         writer_input = WriterInput(
             schema_version="writer-input/0.1.3",
@@ -152,7 +191,7 @@ class WriterHandler:
         response = _prompt(
             self.provider,
             self.model,
-            "Write a concise nonfiction article in Markdown. Your entire and only input is this WriterInput. Use only authorized_claims as factual material, obey boundary_claims, clearly qualify hypotheses, and do not invent facts, scenes, quotations, people, actions, motives, or causality.",
+            "Write a concise nonfiction article in Markdown. Your entire and only input is this WriterInput; never seek or use a ResearchPackage. Priority is Evidence Boundary, then Author Intent, then CapabilityPlan. Use only authorized_claims as factual material and obey boundary_claims. Treat execution_directive as a writing action, respect skip_if, and apply success_check silently. Capabilities may influence organization, explanation density, emotional timing, open endings, author stance, process presentation, and action-line placement. They never authorize new facts, numbers, scenes, fabricated actions, psychology or motive claims, causality, institutional intent, or unsupported professional judgments. Clearly qualify hypotheses. Do not expose capability IDs or internal control rules in the prose.",
             writer_input,
             schema,
         )
