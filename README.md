@@ -72,6 +72,15 @@ Then run:
 
     evidence-writer run-llm examples/real_minimal.yaml
 
+The repository also includes `examples/flu_prevention.yaml`, a Chinese
+public-health example prepared from a supplied article transcription. It keeps
+the source as link-only, extracts only unambiguous claims, and represents
+apparent transcription errors as explicit LIMIT and FORBIDDEN claims rather
+than silently turning a guessed correction into evidence. With the same four
+environment variables set, run it with:
+
+    evidence-writer run-llm examples/flu_prevention.yaml
+
 This first performs a minimal provider connectivity request. Only after it
 succeeds does the real Auditor → Adapter → Writer → Final Review pipeline run.
 The Writer request contains only the frozen `WriterInput`; Final Review receives

@@ -1,0 +1,140 @@
+run_id: flu-prevention
+output_dir: ../output
+
+# This input was transcribed from the linked public-health article. Apparent
+# recognition errors in the supplied body are recorded as an evidence boundary
+# instead of being silently repaired into source-backed facts.
+research_package:
+  schema_version: research-package/0.1.3
+  topic: "如何科学预防流感？"
+  sources:
+    - id: S-CPMA-01
+      title: "如何科学预防流感？"
+      url: "https://service.cpma.org.cn/sci/#/hotspotDetail?articleId=9da18f4270cc4ca98a731c871288d535&code=topic"
+      accessed_at: "2026-09-15"
+      rights_status: LINK_ONLY
+  claims:
+    - id: C-INFECTIOUS-WINDOW
+      claim_type: FACT
+      text: "流感感染者在出现临床症状前1至2天已可排出病毒，发病后1至2天达到排毒高峰。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "一般流感感染者的传染期"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-SHEDDING-DURATION
+      claim_type: FACT
+      text: "一般情况下排毒期平均约5天；低龄儿童、重症患者和免疫功能低下者的排毒时间通常更长，婴幼儿可延长至1至3周。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "一般情况及文中列明的人群"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-VACCINE-ELIGIBILITY
+      claim_type: FACT
+      text: "《中国流感疫苗预防接种技术指南（2025—2026）》建议所有6月龄及以上且无接种禁忌的人群接种流感疫苗。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "2025—2026流感季指南建议"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-PRIORITY-GROUPS
+      claim_type: FACT
+      text: "文中优先推荐医务人员、60岁及以上老年人、慢性病患者、聚集场所人员、孕妇、6至59月龄儿童、6月龄以下婴儿的家庭成员和看护人员，以及托幼机构、中小学校、监管场所等重点场所人群接种。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "文中依据2025—2026版指南列出的优先人群"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-IMMUNITY-DELAY
+      claim_type: FACT
+      text: "流感疫苗通常在接种后2至4周产生具有保护水平的免疫力。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "接种后的免疫反应时间"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-VACCINATION-TIMING
+      claim_type: FACT
+      text: "结合我国流感流行特点，文中将9至10月称为接种的黄金时间；错过后在整个流行季仍可接种，同一流行季完成全部剂次后无需重复接种。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "我国流感季接种时间建议"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-DAILY-PREVENTION
+      claim_type: FACT
+      text: "除接种疫苗外，室内通风、手卫生和咳嗽礼仪也是文中建议的日常预防措施。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "日常非药物预防措施"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-EARLY-TREATMENT
+      claim_type: FACT
+      text: "重症高风险人群确诊流感后，文中建议及时就医，并在医生指导下尽早接受抗病毒治疗。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "已确诊的重症高风险人群"
+      allowed_use: [state]
+      verification_status: VERIFIED
+    - id: C-TRANSCRIPTION-LIMIT
+      claim_type: LIMIT
+      text: "用户提供的正文含有多处疑似识别或转写错误；无法从该文本可靠恢复的词句未被提取为事实。"
+      source_ids: [S-CPMA-01]
+      supporting_claim_ids: []
+      origin: SOURCE_BACKED
+      evidence_level: SECONDARY
+      scope: "全部材料，尤其是疑似误写的人群、疫苗类型及免费接种政策表述"
+      allowed_use: [limit]
+      verification_status: VERIFIED
+    - id: C-NO-SILENT-REPAIR
+      claim_type: FORBIDDEN
+      text: "不得把疑似转写错误静默改写为医学事实，也不得据此断言2026—2027流感季的疫苗供应或免费接种政策。"
+      source_ids: []
+      supporting_claim_ids: [C-TRANSCRIPTION-LIMIT]
+      origin: DERIVED
+      evidence_level: NONE
+      scope: "全文"
+      allowed_use: [forbid]
+      verification_status: FORBIDDEN
+
+author_intent:
+  schema_version: author-intent/0.1.3
+  fact_authority: NONE
+  why_now: "在流感季到来前，为社区居民提供可执行、不过度承诺的预防提示。"
+  central_tension: "建议要清楚实用，同时必须保留适用人群、时间范围和材料质量边界。"
+  core_position: "以疫苗接种为重要手段，并配合通风、手卫生和咳嗽礼仪；高风险人群患病后及时就医。"
+  emotional_state: "平静、审慎、关切"
+  distance_to_object: "面向社区居民的健康科普说明者"
+  do_not_become: "不得写成个体化诊疗意见，不得补写材料中无法可靠辨认的政策或产品信息。"
+  ending_destination: "以接种行动和日常防护可以同时落实的简明提醒收束。"
+
+capability_registry_snapshot:
+  schema_version: capability-registry/0.1
+  registry_version: 0.1.0
+  capability_ids:
+    - CAP-JUDGMENT-ON-MATERIAL
+    - CAP-REDUCE-EXPLANATION
+    - CAP-EMOTION-DELAYED-NAMING
+    - CAP-OPEN-QUESTION
+    - CAP-QUIET-ENDING
+    - CAP-KNOWLEDGE-AS-PROCESS
+    - CAP-BOUNDED-AUTHOR-POSITION
+    - CAP-FACTS-ON-ACTION-LINE
