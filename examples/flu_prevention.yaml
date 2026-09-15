@@ -5,7 +5,7 @@ research_package:
   topic: 流感预防公共来源示例
   sources:
   - id: S-01
-    title: 流感预防科普热点材料
+    title: 如何科学预防流感？
     url: https://service.cpma.org.cn/sci/#/hotspotDetail?articleId=9da18f4270cc4ca98a731c871288d535&code=topic
     accessed_at: '2026-09-15'
     rights_status: LINK_ONLY
@@ -18,7 +18,7 @@ research_package:
     supporting_claim_ids: []
     origin: SOURCE_BACKED
     evidence_level: SECONDARY
-    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    scope: 仅限文中所述的一般流感排毒期及列明人群
     allowed_use:
     - state
     verification_status: VERIFIED
@@ -30,7 +30,7 @@ research_package:
     supporting_claim_ids: []
     origin: SOURCE_BACKED
     evidence_level: SECONDARY
-    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》对应的2025—2026流感季
     allowed_use:
     - state
     verification_status: VERIFIED
@@ -42,7 +42,7 @@ research_package:
     supporting_claim_ids: []
     origin: SOURCE_BACKED
     evidence_level: SECONDARY
-    scope: 仅限《中国流感疫苗预防接种技术指南（2025—2026）》所对应的2025—2026流感季
+    scope: 仅限文中所述的流感疫苗接种后抗体形成时间
     allowed_use:
     - state
     verification_status: VERIFIED

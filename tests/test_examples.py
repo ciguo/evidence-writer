@@ -8,9 +8,11 @@ from unittest.mock import patch
 
 import yaml
 
+from evidence_writer.canonical import canonical_sha256
 from evidence_writer.capabilities import CAPABILITY_REGISTRY, CAPABILITY_REGISTRY_VERSION
 from evidence_writer.cli import main
 from evidence_writer.contracts import AuthorIntent, CapabilityRegistrySnapshot, ResearchPackage
+from evidence_writer.policies import validate_contract_data
 from evidence_writer.providers import ProviderError
 
 
@@ -20,10 +22,16 @@ SOURCE_URL = (
     "https://service.cpma.org.cn/sci/#/hotspotDetail?"
     "articleId=9da18f4270cc4ca98a731c871288d535&code=topic"
 )
+SOURCE_TITLE = "如何科学预防流感？"
 EXPECTED_FACTS = [
     "一般情况下排毒期平均约5天；低龄儿童、住院重症患者和免疫功能低下者的排毒时间通常更长，婴幼儿可延长至1至3周。",
     "文中优先推荐的重点和高风险人群包括养老机构、长期护理机构、福利院等聚集场所的居住人员及工作人员；该项内容仅限2025—2026流感季指南范围。",
     "流感疫苗通常需要在接种后2至4周才能产生具有保护水平的抗体。",
+]
+EXPECTED_FACT_SCOPES = [
+    "仅限文中所述的一般流感排毒期及列明人群",
+    "仅限《中国流感疫苗预防接种技术指南（2025—2026）》对应的2025—2026流感季",
+    "仅限文中所述的流感疫苗接种后抗体形成时间",
 ]
 EXPECTED_LIMIT = (
     "该材料属于单一 LINK_ONLY 二手科普来源，无法独立核实 "
@@ -56,6 +64,47 @@ class PublicSourceExampleTests(unittest.TestCase):
         AuthorIntent.model_validate(self.data["author_intent"])
         CapabilityRegistrySnapshot.model_validate(self.data["capability_registry_snapshot"])
 
+    def test_research_envelope_passes_deterministic_policy_ingress_with_blocked_stages(self) -> None:
+        research = ResearchPackage.model_validate(self.data["research_package"])
+        research_data = research.model_dump(mode="json", exclude_none=True)
+        blocked = {
+            "auditor_result": {
+                "stage": "AUDITOR",
+                "stage_status": "BLOCKED",
+                "error_code": "OFFLINE_EXAMPLE",
+                "reason": "No stages are executed while validating the run-llm input.",
+            },
+            "adapter_result": {
+                "stage": "ADAPTER",
+                "stage_status": "BLOCKED",
+                "error_code": "UPSTREAM_BLOCKED",
+                "reason": "Auditor was not executed.",
+            },
+            "writer_result": {
+                "stage": "WRITER",
+                "stage_status": "BLOCKED",
+                "error_code": "UPSTREAM_BLOCKED",
+                "reason": "Adapter was not executed.",
+            },
+            "final_review_result": {
+                "stage": "FINAL_REVIEW",
+                "stage_status": "BLOCKED",
+                "error_code": "UPSTREAM_BLOCKED",
+                "reason": "Writer was not executed.",
+            },
+        }
+        bundle = {
+            "research_artifact_envelope": {
+                "artifact_type": "ResearchPackage",
+                "artifact_schema_version": research.schema_version,
+                "canonical_json_sha256": canonical_sha256(research_data),
+                "artifact": research_data,
+            },
+            "capability_registry_snapshot": self.data["capability_registry_snapshot"],
+            **blocked,
+        }
+        self.assertEqual(validate_contract_data(bundle), [])
+
     def test_run_llm_parses_before_mocked_provider_boundary(self) -> None:
         error = ProviderError("OFFLINE_TEST", "no provider call", provider="test")
         output = StringIO()
@@ -72,8 +121,9 @@ class PublicSourceExampleTests(unittest.TestCase):
         self.assertEqual(snapshot["capability_ids"], list(CAPABILITY_REGISTRY))
 
     def test_fact_text_is_exact(self) -> None:
-        facts = [claim["text"] for claim in self.research["claims"] if claim["claim_type"] == "FACT"]
-        self.assertEqual(facts, EXPECTED_FACTS)
+        facts = [claim for claim in self.research["claims"] if claim["claim_type"] == "FACT"]
+        self.assertEqual([claim["text"] for claim in facts], EXPECTED_FACTS)
+        self.assertEqual([claim["scope"] for claim in facts], EXPECTED_FACT_SCOPES)
 
     def test_forbidden_is_supported_by_limit(self) -> None:
         limit_claim = self.claims["C-04"]
@@ -84,6 +134,7 @@ class PublicSourceExampleTests(unittest.TestCase):
 
     def test_source_url_and_rights_are_exact(self) -> None:
         self.assertEqual(len(self.research["sources"]), 1)
+        self.assertEqual(self.research["sources"][0]["title"], SOURCE_TITLE)
         self.assertEqual(str(self.research["sources"][0]["url"]), SOURCE_URL)
         self.assertEqual(self.research["sources"][0]["rights_status"], "LINK_ONLY")
 
