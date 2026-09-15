@@ -96,3 +96,18 @@ BLOCKED StageResults for every remaining stage.
 - Modern copyrighted material defaults to link-only/no-quote.
 - Provider runtime configuration is read only from the four documented
   `EVIDENCE_WRITER_LLM_*` environment variables.
+
+## Public-source flu-prevention example
+
+`examples/flu_prevention.yaml` is a complete, offline Contract fixture. Validate
+its deterministic policy ingress without invoking a model:
+
+    PYTHONPATH=src python -m unittest tests.test_examples -v
+
+The example deliberately treats its only source as `LINK_ONLY`. Material
+attributed to《中国流感疫苗预防接种技术指南（2025—2026）》is scoped only to the
+2025—2026 influenza season. Because one secondary popular-science source cannot
+independently verify vaccine supply or a national free-vaccination policy for
+the 2026—2027 season, the fixture carries that constraint as an explicit LIMIT
+and a dependent FORBIDDEN claim rather than presenting either item as verified
+fact or current national policy.
