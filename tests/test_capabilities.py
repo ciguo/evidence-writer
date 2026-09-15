@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import asdict
 from pathlib import Path
 import unittest
 
@@ -23,6 +24,81 @@ from evidence_writer.providers import FakeProvider
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+FROZEN_DEFINITIONS = [
+    {
+        "capability_id": "CAP-JUDGMENT-ON-MATERIAL",
+        "objective": "避免先抛抽象结论，再用材料装饰。",
+        "trigger": "现实评论、文化评论、产业/政策题；安全包中已有可观察对象、制度、关系、文本或数据。",
+        "execution_directive": "重要判断尽量先落在已授权的具体对象、关系或材料上，再向外延伸；不要新增例子来支撑判断。",
+        "skip_if": "安全包没有足够具体材料；文章本身是纯个人感受。",
+        "success_check": "判断所指对象清楚；没有新增事实；没有变成“多写细节”。",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-REDUCE-EXPLANATION",
+        "objective": "减少“事实后再解释一遍”的 AI 逻辑水印。",
+        "trigger": "facts/judgments already illuminate each other; Writer tends to append summaries/mechanisms/meaning.",
+        "execution_directive": "when authorized material already carries judgment, do not add same-meaning explanation; preserve necessary logic, don’t close every paragraph.",
+        "skip_if": "medical/policy/professional explanation if omission causes substantive misunderstanding.",
+        "success_check": "information intact, logic intact, author judgment still visible.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-EMOTION-DELAYED-NAMING",
+        "objective": "real emotion without immediately naming/defending/uplifting it.",
+        "trigger": "personal experience/memorial/controlled emotion; Author Intent has real emotion; authorized actions/relations/objects/experience position exist.",
+        "execution_directive": "let authorized action/relation/waiting/friction/hesitation carry emotion first; direct feeling later if needed; do not justify why feeling is correct.",
+        "skip_if": "no real experience; industry/professional explainer; risk key misunderstanding.",
+        "success_check": "emotion perceptible but not managed; no fabricated life detail; direct emotion not sterilized.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-OPEN-QUESTION",
+        "objective": "allow unresolved question; avoid “困境—领悟—升华”.",
+        "trigger": "CENTRAL_TENSION lacks sufficient answer; author wants incompleteness.",
+        "execution_directive": "if material lacks full answer, leave real unresolved question; do not fabricate conclusion for structural completeness.",
+        "skip_if": "explicit explanation/operational guidance/clear judgment required.",
+        "success_check": "openness comes from material resistance, not faux profundity; reader still knows topic.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-QUIET-ENDING",
+        "objective": "avoid summary/uplift/gold-line ending.",
+        "trigger": "ENDING_DESTINATION = QUIET_STOP or OPEN_REMAINDER; main judgment done.",
+        "execution_directive": "stop near last still-pressurized fact/action/judgment/question; no repeat conclusion; no higher abstraction.",
+        "skip_if": "knowledge article needs explicit conclusion/steps/boundary.",
+        "success_check": "natural stop; no second uplift.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-KNOWLEDGE-AS-PROCESS",
+        "objective": "professional knowledge without textbook/terminology display.",
+        "trigger": "medicine/tech/consumer/professional explanation; safe package has real phenomena/process/verifiable sequence.",
+        "execution_directive": "enter terms/explanation from authorized phenomenon/process/problem, preserving accuracy; knowledge serves current problem.",
+        "skip_if": "definition must precede; no process material.",
+        "success_check": "object understood before term; no unauthorized “accessible” analogy facts.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-BOUNDED-AUTHOR-POSITION",
+        "objective": "author judgment/emotion present without expanding fact authority.",
+        "trigger": "viewpoint/value judgment; Author Intent has clear stance.",
+        "execution_directive": "first-person care/doubt/dislike/delight/irony/respect allowed; external assertions still only from handoff.",
+        "skip_if": "pure explainer and author position adds no value.",
+        "success_check": "distinguish “作者怎么看” from “外部世界是什么”; “我觉得” not used to package new facts.",
+        "fact_authority": "NONE",
+    },
+    {
+        "capability_id": "CAP-FACTS-ON-ACTION-LINE",
+        "objective": "dense facts not background manual.",
+        "trigger": "safe package has real verified timeline/action/event process.",
+        "execution_directive": "attach authorized facts to real action/timeline; institutions/numbers/rules enter with process.",
+        "skip_if": "no real action line; only statistical aggregation; requires fabricated scene.",
+        "success_check": "facts have position/rhythm; no fabricated scene/interview/dialogue/actions.",
+        "fact_authority": "NONE",
+    },
+]
 
 
 def _config() -> dict:
@@ -68,6 +144,12 @@ def _adapter(selected: list[str], *, structured: dict | None = None, ids: list[s
 
 
 class CapabilityRegistryTests(unittest.TestCase):
+    def test_complete_registry_semantics_match_frozen_production_definitions(self) -> None:
+        self.assertEqual(
+            [asdict(definition) for definition in CAPABILITY_REGISTRY.values()],
+            FROZEN_DEFINITIONS,
+        )
+
     def test_registry_contains_exactly_the_eight_production_ids(self) -> None:
         self.assertEqual(
             set(CAPABILITY_REGISTRY),
